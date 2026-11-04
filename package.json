@@ -1,0 +1,16 @@
+{
+  "name": "attention-atlas",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "An interactive field guide to CNNs, RNNs and the original Transformer.",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "build": "npm test && node scripts/build.mjs",
+    "dev": "python3 -m http.server 8791",
+    "deploy": "npm run build && wrangler pages deploy dist --project-name attention-atlas --branch main"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
