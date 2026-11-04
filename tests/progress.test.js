@@ -103,3 +103,22 @@ test('progress: every recognised chapter can be restored, and unknown metadata i
   const data = {completed: [...CHAPTERS], answers: {}, exportedAt: '2026-01-01', app: 'Another app'};
   assert.deepEqual(loadProgress(memoryStorage(JSON.stringify(data)), quiz).data, {completed: [...CHAPTERS], answers: {}});
 });
+
+test('progress import: accepts versioned exports and discards unknown fields', async()=>{
+  const {parseProgressImport}=await import('../src/progress.js');
+  const qs=[{id:'q',choices:['a','b']}];
+  const data=parseProgressImport(JSON.stringify({app:'Attention Atlas',version:1,completed:['cnn','unknown','cnn'],answers:{q:1,foreign:0},extra:'ignored'}),qs);
+  assert.deepEqual(data,{completed:['cnn'],answers:{q:1}});
+});
+test('progress import: rejects other apps, oversized files, malformed JSON and unsupported versions',async()=>{
+  const {parseProgressImport}=await import('../src/progress.js');
+  for(const text of ['{','null','{}',JSON.stringify({app:'Attention Atlas',version:2,completed:[],answers:{}}),JSON.stringify({app:'Attention Atlas',version:1,completed:[],answers:[]})])assert.throws(()=>parseProgressImport(text));
+  assert.throws(()=>parseProgressImport(' '.repeat(65537)),/64 KB/);
+});
+test('progress merge: older exports cannot erase correct answers; correct imported answers are restored',async()=>{
+ const {mergeProgress}=await import('../src/progress.js');
+ const qs=[{id:'a',choices:['x','y'],answer:1},{id:'b',choices:['x','y'],answer:0}];
+ const current={completed:['cnn'],answers:{a:1,b:1}},incoming={completed:['rnn','cnn'],answers:{a:0,b:0}};
+ assert.deepEqual(mergeProgress(current,incoming,qs),{completed:['cnn','rnn'],answers:{a:1,b:0}});
+ assert.deepEqual(current,{completed:['cnn'],answers:{a:1,b:1}});
+});

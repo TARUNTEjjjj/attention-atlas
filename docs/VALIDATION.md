@@ -1,3 +1,19 @@
+# Release validation — 1.1.0
+
+Tested 5 November 2026 (India Standard Time).
+
+- **103 automated checks pass:** 33 core numerical tests, 14 advanced numerical tests, 16 progress/import tests, 9 learning search tests, 6 content integration tests, 3 build/cache tests, and 22 load-harness tests. The runner's executable tests use mocked HTTPS and produce no remote traffic.
+- Browser-tested new search (including Enter-to-result), glossary/navigation, LayerNorm's constant-input and invalid-input cases, 32,768-token storage calculations, and the advanced checkpoints. Verified zero-variance normalization stays finite and the 16-head fp32 score estimate is 64 GiB.
+- Browser-tested progress import with a real downloaded export. An older wrong answer cannot replace a current correct answer; an import cancels an armed reset. Existing first-release progress remains compatible.
+- Verified responsive widths of 320 and 390 pixels and desktop; no page-wide horizontal overflow. The mobile chapter bar and feature table scroll within their own regions. No runtime warning/error logs were observed in the exercised flows.
+- Live deployment has 17 served files, including 14 immutable assets. Every file matches the build hash, HTML is revalidated, security headers are present, and missing routes return the custom 404.
+- Deterministic release **9369f6aceda5b33c**, total static build **150,062 bytes** before compression. A 350,000-byte build budget rejects oversized releases.
+- See [the measured capacity report](CAPACITY.md) and its raw JSON for live load outcomes and their precise limits. No claim is made that an HTTP session model represents 10,000 simultaneous real browsers.
+
+The source repository remains private; the public browser assets contain no credentials. All experiments run on the learner's device. No backend database, paid infrastructure, tracking analytics or API dependency was added.
+
+---
+
 # Release validation — 1.0.0
 
 Tested 5 November 2026 (India Standard Time).

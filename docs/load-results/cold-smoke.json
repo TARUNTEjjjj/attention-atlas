@@ -1,0 +1,185 @@
+{
+  "schemaVersion": 1,
+  "startedAt": "2026-11-04T19:43:15.273Z",
+  "finishedAt": "2026-11-04T19:43:21.385Z",
+  "target": "https://attention-atlas.pages.dev",
+  "scenario": "cold",
+  "scenarioMeaning": "Each logical session downloads HTML and every listed deployment asset; this approximates a cold bundle, without executing JavaScript.",
+  "outcome": "completed",
+  "stopReason": null,
+  "configuration": {
+    "sessions": 10,
+    "paths": [
+      "/",
+      "/assets/9369f6aceda5b33c/favicon.svg",
+      "/assets/9369f6aceda5b33c/src/advanced-labs.css",
+      "/assets/9369f6aceda5b33c/src/advanced-labs.js",
+      "/assets/9369f6aceda5b33c/src/advanced-math.js",
+      "/assets/9369f6aceda5b33c/src/app.js",
+      "/assets/9369f6aceda5b33c/src/learning-tools.css",
+      "/assets/9369f6aceda5b33c/src/learning-tools.js",
+      "/assets/9369f6aceda5b33c/src/lessons.js",
+      "/assets/9369f6aceda5b33c/src/math.js",
+      "/assets/9369f6aceda5b33c/src/progress.js",
+      "/assets/9369f6aceda5b33c/src/sequence-labs.css",
+      "/assets/9369f6aceda5b33c/src/sequence-labs.js",
+      "/assets/9369f6aceda5b33c/src/visual-labs.js",
+      "/assets/9369f6aceda5b33c/styles.css"
+    ],
+    "plannedRequests": 150,
+    "rpsCap": 25,
+    "maxInflightRequests": 16,
+    "timeoutSeconds": 15,
+    "residentHoldSeconds": 0,
+    "maxWallSeconds": 900
+  },
+  "buildSnapshot": {
+    "release": "9369f6aceda5b33c",
+    "manifestVersion": 1,
+    "manifestSha256": "bee7ccca8c16f525e7be08c9b303a7c09db2205da82a9e1a7dbcf8da2a17f7b3",
+    "htmlSha256": "94e453a3b922c690f8f71ebf8b15bca3014015fd92cec557781607ad2cd4b89d",
+    "testedAssetDigests": [
+      {
+        "path": "/",
+        "sha256": "94e453a3b922c690f8f71ebf8b15bca3014015fd92cec557781607ad2cd4b89d"
+      },
+      {
+        "path": "/assets/9369f6aceda5b33c/favicon.svg",
+        "sha256": "36dd84c81e829c00890cde8045c6e4580694cfd6bf0f6720e28962570079d469"
+      },
+      {
+        "path": "/assets/9369f6aceda5b33c/src/advanced-labs.css",
+        "sha256": "c880a78003fd1299aec31b02878ee8518ae0fca71a28d89fb1718f28d2ba1400"
+      },
+      {
+        "path": "/assets/9369f6aceda5b33c/src/advanced-labs.js",
+        "sha256": "33d46540e85664c0699255cae8f953388f5e24666bb3c00540afd00f44f3ae92"
+      },
+      {
+        "path": "/assets/9369f6aceda5b33c/src/advanced-math.js",
+        "sha256": "ec99d123ce1b7575a78ddf60060017ee588753ba429c556934b928ff29025063"
+      },
+      {
+        "path": "/assets/9369f6aceda5b33c/src/app.js",
+        "sha256": "f773d27bb402e49d064feec3836f4b713932119d8b386fc3ab13f2b214df402c"
+      },
+      {
+        "path": "/assets/9369f6aceda5b33c/src/learning-tools.css",
+        "sha256": "d1a91934d7a8dce8b518ae6e34c19e804d61f57e09a7a0f02be34be653ad0e9e"
+      },
+      {
+        "path": "/assets/9369f6aceda5b33c/src/learning-tools.js",
+        "sha256": "3c502ca6730587e4c4c1daaa8cc7021d8dd1bb6b604a3f776495a31d9ffe90de"
+      },
+      {
+        "path": "/assets/9369f6aceda5b33c/src/lessons.js",
+        "sha256": "0626e38e6ff84838251786327c9a8958841b652b59bf7700d958c8e73d4e381d"
+      },
+      {
+        "path": "/assets/9369f6aceda5b33c/src/math.js",
+        "sha256": "975e0bfaaa44a888a2c426ee9e00a4e373d8cff4522ddc75aa5f5f79b0d97822"
+      },
+      {
+        "path": "/assets/9369f6aceda5b33c/src/progress.js",
+        "sha256": "4d0985ba9a3d9ca98628275a4703de9dba313a9f4eb34789367f27df9e5453c3"
+      },
+      {
+        "path": "/assets/9369f6aceda5b33c/src/sequence-labs.css",
+        "sha256": "1f47e42a0e95eb4d055d4e9bc1414e548fac26c4c59c415d0513275c768cb07a"
+      },
+      {
+        "path": "/assets/9369f6aceda5b33c/src/sequence-labs.js",
+        "sha256": "d7d94406b25eee42eb5a5144ff77dcd8a00babd59643e86a6456ac42d0fe1ddb"
+      },
+      {
+        "path": "/assets/9369f6aceda5b33c/src/visual-labs.js",
+        "sha256": "8b355ccf02052784efa9e5bb870f38c50625fb7187b056f01bc22be2fae0ec98"
+      },
+      {
+        "path": "/assets/9369f6aceda5b33c/styles.css",
+        "sha256": "026323b1adc4e728aed33e0baf9e5db92e6d074e620764e3db0cd94f9bf4de24"
+      }
+    ]
+  },
+  "topology": {
+    "generators": 1,
+    "protocol": "HTTP/1.1 with TLS and bounded keep-alive sockets",
+    "vantage": "single local host / network path; edge colos reported below",
+    "realBrowsers": 0,
+    "executesClientJavaScript": false,
+    "loadsThirdPartyAssets": false,
+    "requestBodyValidation": "SHA-256 equality with each corresponding local dist asset"
+  },
+  "sessions": {
+    "started": 10,
+    "completedScenarioSessions": 10,
+    "failedOrCancelledSessions": 0,
+    "loadLatency": {
+      "samples": 10,
+      "p50Ms": 5744.577042,
+      "p95Ms": 5746.183666999999,
+      "p99Ms": 5746.183666999999,
+      "maxMs": 5746.183666999999
+    },
+    "loadLatencyMeaning": "Time from the first request launch to validation of the last response in the selected scenario, including per-session pacing waits; no rendering or JavaScript execution.",
+    "modeledResidentPeak": 10,
+    "residentHoldCompleted": true,
+    "holdSecondsObserved": 0,
+    "meaning": "Loaded sessions remain logically resident until the final hold finishes. No extra network traffic is generated by their idle residence."
+  },
+  "http": {
+    "started": 150,
+    "completed": 150,
+    "successful": 150,
+    "failed": 0,
+    "cancelled": 0,
+    "peakInflight": 3,
+    "requestPhaseSeconds": 6.109679042000001,
+    "averageRequestsPerSecond": 24.55120784068185,
+    "peakStartsInAlignedSecond": 25,
+    "peakCompletionsInAlignedSecond": 25,
+    "statusCounts": {
+      "200": 150
+    },
+    "cacheStatusCounts": {
+      "not-reported": 150
+    },
+    "encodingCounts": {
+      "br": 150
+    },
+    "edgeColoCounts": {
+      "MAA": 150
+    },
+    "wireBodyBytes": 509052,
+    "decodedBodyBytes": 1463770,
+    "latency": {
+      "samples": 150,
+      "p50Ms": 34.137292000000116,
+      "p95Ms": 52.10175000000004,
+      "p99Ms": 89.88029100000001,
+      "maxMs": 90.776792
+    }
+  },
+  "generator": {
+    "elapsedSeconds": 6.111876083,
+    "peakSampledResidentSetBytes": 31100000,
+    "memorySampling": "every 100 responses, every 10 seconds and at completion",
+    "eventLoopDelayP95Ms": 21.561343,
+    "eventLoopDelayMaxMs": 55.083007
+  },
+  "milestones": [
+    {
+      "loadedResidentSessions": 10,
+      "elapsedSeconds": 6.111242333,
+      "inflightRequests": 0
+    }
+  ],
+  "failures": [],
+  "limitations": [
+    "This does not establish 10,000 simultaneous TCP/TLS connections, 10,000 browser runtimes, or 10,000 real human visitors.",
+    "The static site makes no backend learning API calls. Idle learner concurrency is a workload assumption, not server-side session state.",
+    "One network origin cannot establish worldwide latency or a capacity ceiling. The request limiter may be the bottleneck.",
+    "Cold mode downloads listed assets sequentially per session and does not execute browser rendering, browser caches, or service workers. HTML/warm modes are not cold full-page loads.",
+    "Guardrails intentionally stop before stressing a failing service. Passing this workload is evidence only at the reported request rate and concurrency."
+  ]
+}

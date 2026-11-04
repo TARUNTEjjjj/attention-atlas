@@ -108,3 +108,11 @@ Examples of honest limitations: a scalar RNN is not a language model; one filter
 - [Jain & Wallace, Attention is not Explanation (2019)](https://aclanthology.org/N19-1357/): evidence against interpreting attention weights alone as explanations.
 
 All examples and teaching prose in this guide are original. No paper figures are reproduced.
+
+## New experiments in version 1.1
+
+**Residual + normalization:** Add `x = [1, 2, 3, 4]` and `s = [0.5, −0.5, 1, −1]` to get `r = [1.5, 1.5, 4, 3]`. Its mean is 2.5. Squared centered coordinates sum to 4.5, so the population variance is 4.5 / 4 = 1.125. Divide each centered coordinate by `sqrt(1.125 + epsilon)`, then apply gain and bias. Setting all residual coordinates equal gives zero normalized features. This is post-normalization, as in the original Transformer; a pre-norm sublayer sees a different input.
+
+**Attention storage:** A dense score tensor for one batch item has `heads × tokens²` entries. At 1024 tokens, eight heads and two bytes per score, it occupies 16 MiB. Doubling tokens quadruples this size. This estimate excludes other activations, parameters and gradients. Memory-efficient algorithms such as [FlashAttention](https://arxiv.org/abs/2205.14135) avoid materializing the entire score matrix; they do not remove all pairwise arithmetic.
+
+The site now includes 16 checkpoints, concept search and a 12-term glossary. Progress import merges chapter marks and keeps already-correct local answers when an older export contains a wrong answer.

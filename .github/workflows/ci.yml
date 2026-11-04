@@ -17,4 +17,4 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - run: npm run build
-      - run: node --check src/app.js && node --check src/visual-labs.js && node --check src/sequence-labs.js
+      - run: for source in src/*.js scripts/*.mjs; do node --check "$source"; done

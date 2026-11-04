@@ -1,16 +1,19 @@
+import {mountComplexity,mountNormalization} from './advanced-labs.js';
+import {mountLearningTools} from './learning-tools.js';
 import {lessons,quiz,sources} from './lessons.js';
 import {mountCNN,mountAttention,mountTransformer} from './visual-labs.js';
 import {mountRNN,mountPosition} from './sequence-labs.js';
-import {loadProgress,saveProgress,normalizeProgress,CHAPTERS} from './progress.js';
+import {loadProgress,saveProgress,normalizeProgress,parseProgressImport,mergeProgress,CHAPTERS} from './progress.js';
 const $=s=>document.querySelector(s);
 let storage;try{storage=window.localStorage;}catch{storage=null;}
 let {data:progress,available}=loadProgress(storage,quiz);
 let questionIndex=0;
 for(const lesson of lessons){const holder=document.querySelector(`[data-lesson="${lesson.id}"]`);holder.innerHTML=`<details><summary>The maths, explained · ${lesson.title}</summary><div class="lesson-body">${lesson.body}</div></details>`;}
-mountCNN($('#cnn-lab'));mountRNN($('#rnn-lab'));mountAttention($('#attention-lab'));mountTransformer($('#transformer-map'));mountPosition($('#position-lab'));
+mountLearningTools($('#learning-tools'));mountNormalization($('#normalization-lab'));mountComplexity($('#complexity-lab'));mountCNN($('#cnn-lab'));mountRNN($('#rnn-lab'));mountAttention($('#attention-lab'));mountTransformer($('#transformer-map'));mountPosition($('#position-lab'));
 for(const [id,title] of [['rnn-lab','EXPERIMENT 02 / TRACE THE MEMORY'],['position-lab','EXPERIMENT 04 / A POSITION SIGNATURE']]){const lab=document.getElementById(id),body=document.createElement('div');body.className='lab-body';body.append(...lab.childNodes);lab.append(body);const bar=document.createElement('div');bar.className='lab-topbar';bar.innerHTML=`<span class="eyebrow">${title}</span><span class="pill">Change a parameter</span>`;document.getElementById(id).prepend(bar);}
 function storageStatus(){ $('#storage-status').textContent=available?'Progress is saved on this browser only.': 'Browser storage is unavailable or unreadable. You can still use every lab and export progress for this session.'; }
-function persist(){available=saveProgress(storage,progress);storageStatus();}
+function disarmReset(){resetArmed=false;$('#reset-progress').textContent='Reset local progress';}
+function persist(){disarmReset();available=saveProgress(storage,progress);storageStatus();}
 function renderProgress(){
   $('#progress-summary').textContent=`${progress.completed.length} of ${CHAPTERS.length} explored`;
   $('#progress-dots').innerHTML=CHAPTERS.map(id=>`<a href="#${id}" class="${progress.completed.includes(id)?'done':''}" aria-label="${id}: ${progress.completed.includes(id)?'explored':'not marked explored'}"></a>`).join('');
@@ -35,3 +38,7 @@ $('#export-progress').addEventListener('click',()=>{const payload={app:'Attentio
 let resetArmed=false;
 $('#reset-progress').addEventListener('click',()=>{if(!resetArmed){resetArmed=true;$('#reset-progress').textContent='Confirm reset — erase progress';$('#storage-status').textContent='This removes chapter marks and quiz answers on this browser. Click Confirm reset to continue.';return;}progress=normalizeProgress(null);persist();renderProgress();questionIndex=0;renderQuiz();resetArmed=false;$('#reset-progress').textContent='Reset local progress';$('#storage-status').textContent=available?'Local progress has been reset.':'Session progress has been reset; browser storage is unavailable.';});
 renderProgress();renderQuiz();storageStatus();
+
+$('#import-progress').addEventListener('change',async e=>{const input=e.currentTarget,file=input.files?.[0];if(!file)return;try{if(file.size>65536)throw new Error('Choose a progress export smaller than 64 KB.');const imported=parseProgressImport(await file.text(),quiz);progress=mergeProgress(progress,imported,quiz);persist();renderProgress();renderQuiz();$('#storage-status').textContent=available?'Progress imported and merged with this browser’s progress.':'Progress imported for this session; browser storage is unavailable.';}catch(error){$('#storage-status').textContent=error.message;}finally{input.value='';}});
+
+$('.privacy-details').addEventListener('toggle',e=>{if(!e.currentTarget.open)disarmReset();});
