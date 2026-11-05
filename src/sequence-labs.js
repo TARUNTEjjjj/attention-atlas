@@ -1,4 +1,4 @@
-import { rnnSequence, positionalEncoding } from './math.js';
+import { rnnSequence, positionalEncoding, positionOffsetRotation } from './math.js';
 
 let instance = 0;
 const format = (value, digits = 4) => Math.abs(value) < 1e-6 ? (0).toFixed(digits) : value.toFixed(digits);
@@ -44,7 +44,7 @@ export function mountRNN(element) {
     <div class="rnn-working" aria-live="polite" aria-atomic="true"></div>
     <details class="sequence-details"><summary>Why can an RNN forget earlier inputs?</summary>
       <p>The derivative through one step is w<sub>h</sub>(1 − h<sub>t</sub>²). Across steps, these factors multiply. Small factors shrink the signal sent backward during training; large factors can amplify it. Large input magnitudes can saturate tanh, making 1 − h² nearly zero.</p>
-      <p>Try w<sub>h</sub> = 0, then 1.5. A larger memory weight does not guarantee a larger final gradient: saturation matters too. This scalar derivative is ∂h<sub>t</sub>/∂h<sub>0</sub>, not a complete loss gradient. Vector RNNs use products of Jacobian matrices.</p>
+      <p>With the default inputs, try w<sub>h</sub> = 1.2, then 2.0. The four-step sensitivity falls from about 0.172 to about 0.018. The first state, h<sub>1</sub> = tanh(0.8), is the same in both runs, but the larger weight pushes h<sub>2</sub> to h<sub>4</sub> toward ±1, where 1 − h² is small. A larger memory weight does not guarantee a larger final gradient. Setting w<sub>h</sub> = 0 removes the dependence on h<sub>0</sub> entirely. This scalar derivative is ∂h<sub>t</sub>/∂h<sub>0</sub>, not a complete loss gradient. Vector RNNs use products of Jacobian matrices.</p>
     </details>
     <p class="note sequence-footnote">Toy RNN · one hidden value · shared weights at every step · bias = 0 · h₀ = 0. These values are chosen for learning, not fitted to data.</p>`;
 
@@ -69,7 +69,7 @@ export function mountRNN(element) {
       button.dataset.index = String(index);
       button.setAttribute('aria-pressed', String(selected === index && index < revealed));
       button.setAttribute('aria-label', `Inspect step ${index + 1}, input ${state.input}${index < revealed ? `, hidden state ${format(state.hidden)}` : ', not revealed yet'}`);
-      button.innerHTML = `<span class="eyebrow">Step ${index + 1} · x = ${state.input}</span><strong>h${index + 1} = ${index < revealed ? format(state.hidden) : '?'}</strong><small>${index < revealed ? 'Inspect calculation' : 'Waiting for previous state'}</small>`;
+      button.innerHTML = `<span class="eyebrow">Step ${index + 1} · <span class="math-case">x = ${state.input}</span></span><strong>h${index + 1} = ${index < revealed ? format(state.hidden) : '?'}</strong><small>${index < revealed ? 'Inspect calculation' : 'Waiting for previous state'}</small>`;
       strip.append(button);
     });
     get('[data-action="step"]').disabled = revealed >= inputs.length;
@@ -96,7 +96,7 @@ export function mountRNN(element) {
       </div>
       <div class="sequence-sensitivity">
         <div><span class="eyebrow">Local derivative</span><strong>${format(state.localDerivative)}</strong><small>w<sub>h</sub>(1 − h<sub>${selected + 1}</sub>²)</small></div>
-        <div><span class="eyebrow">∂h<sub>${selected + 1}</sub> / ∂h₀</span><strong>${state.gradientToInitial.toExponential(3)}</strong><small>Product through ${selected + 1} step${selected ? 's' : ''}</small></div>
+        <div><span class="eyebrow math-case">∂h<sub>${selected + 1}</sub> / ∂h₀</span><strong>${state.gradientToInitial.toExponential(3)}</strong><small>Product through ${selected + 1} step${selected ? 's' : ''}</small></div>
         <p>${explanation}</p>
       </div>
       <details class="sequence-details"><summary>Follow the chain rule</summary><p class="sequence-product">${products} ≈ ${state.gradientToInitial.toExponential(3)}</p><p>Displayed factors are rounded; calculations use full precision. Each factor measures how one hidden state responds to the previous one. The sign tells you the direction of that response; the magnitude tells you its size.</p></details>`;
@@ -168,7 +168,9 @@ export function mountPosition(element) {
     <div class="position-layout"><div class="position-chart"></div><div class="position-table-wrap"><table class="position-table"><caption>Encoding values, rounded to 4 decimals</caption><thead><tr><th scope="col">Dimension</th><th scope="col" data-current>p = 4</th><th scope="col" data-next>p = 5</th></tr></thead><tbody></tbody></table></div></div>
     <div class="formula position-formula">PE(p, 2i) = sin(p / 10000<sup>2i/d</sup>)<br>PE(p, 2i + 1) = cos(p / 10000<sup>2i/d</sup>)</div>
     <p class="position-example note" aria-live="polite"></p>
-    <details class="sequence-details"><summary>How does this enter the Transformer?</summary><p>In the original paper, scale the token embedding by √d, then add this vector element by element before the first layer: input = √d × token embedding + positional encoding. Both vectors must have the same dimension d. The table uses d = 8 to keep the calculation visible; the original base model used d = 512.</p><p>Each sine/cosine pair uses a different wavelength. Adjacent positions can be similar without being identical. Position zero is not an all-zero vector: its sine coordinates are 0 and its cosine coordinates are 1. Positional encodings describe order, not a token's meaning.</p></details>`;
+    <div class="position-offset" aria-live="polite"></div>
+    <details class="sequence-details"><summary>How does this enter the Transformer?</summary><p>In the original paper, scale the token embedding by √d, then add this vector element by element before the first layer: input = √d × token embedding + positional encoding. Both vectors must have the same dimension d. The table uses d = 8 to keep the calculation visible; the original base model used d = 512.</p><p>Each sine/cosine pair uses a different wavelength. Adjacent positions can be similar without being identical. Position zero is not an all-zero vector: its sine coordinates are 0 and its cosine coordinates are 1. Positional encodings describe order, not a token's meaning.</p></details>
+    <details class="sequence-details"><summary>Why sinusoids? Rotation by a fixed offset</summary><p>Pair i turns at frequency ω = 1 / 10000<sup>2i/d</sup>. With d = 8 the four pairs have wavelengths 2π, 20π, 200π and 2000π positions (about 6.3, 63, 628 and 6,283). For d = 512 the paper describes wavelengths in a geometric progression from 2π towards 10000 · 2π.</p><p>The sine and cosine angle-addition rules give PE(p + k) = R(kω) · PE(p) for every pair, where R is a 2 × 2 rotation that depends only on the offset k and the pair's frequency ω. The authors chose sinusoids because they hypothesised that this would make relative positions easy to learn. Learned position embeddings gave nearly identical results (Table 3, row E); the paper kept sinusoids because they may let the model extrapolate to sequences longer than those seen in training. The panel above checks the rotation for k = 1.</p><p>Later models build on the same rotation. Rotary position embedding (Su et al.) uses the same frequencies, but rotates each query and key by its own position instead of adding a vector. The dot product of a query at m and a key at n then depends on their positions only through the offset n − m. <a href="https://arxiv.org/abs/2104.09864" target="_blank" rel="noopener noreferrer">Read the RoFormer paper ↗</a></p></details>`;
   const chart = element.querySelector('.position-chart');
   const body = element.querySelector('tbody');
   const slider = element.querySelector(`#${id}-position`);
@@ -214,6 +216,11 @@ export function mountPosition(element) {
     });
     chart.replaceChildren(svg);
     element.querySelector('.position-example').textContent = `At position ${position}, dimension 2 is sin(${position} / 10) ≈ ${format(current[2])}. Dimensions 2 and 3 share denominator 10 because 10000^(2/8) = 10. The same pair at position ${position + 1} uses (${position + 1}) / 10.`;
+    const pair = (values) => `[${values.map((value) => format(value)).join(', ')}]`;
+    element.querySelector('.position-offset').innerHTML = `<span class="eyebrow">Offset check · rotate instead of recomputing</span><div class="formula">${[0, 1].map((index) => {
+      const r = positionOffsetRotation(position, 1, index, 8);
+      return `pair ${index} · ω = ${Number(r.frequency.toPrecision(6))} · R = [[${format(r.matrix[0][0])}, ${format(r.matrix[0][1])}], [${format(r.matrix[1][0])}, ${format(r.matrix[1][1])}]]<br>at p = ${position}: ${pair(r.from)}<br>R × that pair: ${pair(r.rotated)}<br>at p = ${position + 1}: ${pair(r.target)}`;
+    }).join('<br><br>')}</div><p class="note">Move the slider: the vectors change, but each rotation R stays the same. R depends only on the offset (1 step) and the pair's frequency, not on the position.</p>`;
   }
   slider.addEventListener('input', render, { signal: abort.signal });
   render();

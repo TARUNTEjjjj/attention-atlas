@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {softmax, matmul, convolve2d, convolutionWindow, rnnSequence, attention, positionalEncoding} from '../src/math.js';
+import {softmax, matmul, convolve2d, convolutionWindow, rnnSequence, attention, positionalEncoding, positionOffsetRotation} from '../src/math.js';
 
 function near(actual, expected, tolerance = 1e-12) {
   assert.ok(Math.abs(actual - expected) <= tolerance, `Expected ${actual} ≈ ${expected}`);
@@ -74,6 +74,16 @@ test('convolution: validates geometry and output coordinates', () => {
     assert.throws(() => convolutionWindow([[1]], [[1]], row, col));
   }
 });
+test('convolution: stride 1 is translation-equivariant; stride 2 changes the pattern for an odd shift', () => {
+  const edge = [[-1, 0, 1], [-1, 0, 1], [-1, 0, 1]];
+  const pixel = col => Array.from({length: 5}, (_, i) => Array.from({length: 5}, (_, j) => (i === 2 && j === col ? 1 : 0)));
+  const centre = convolve2d(pixel(2), edge, {padding: 1}), right = convolve2d(pixel(3), edge, {padding: 1});
+  assert.deepEqual(centre.slice(1, 4), Array(3).fill([0, 1, 0, -1, 0]));
+  assert.deepEqual(right.slice(1, 4), Array(3).fill([0, 0, 1, 0, -1]));
+  assert.deepEqual(convolve2d(pixel(2), edge, {stride: 2, padding: 1}), [[0, 0, 0], [0, 0, 0], [0, 0, 0]]);
+  assert.deepEqual(convolve2d(pixel(3), edge, {stride: 2, padding: 1})[1], [0, 1, -1]);
+  assert.deepEqual(convolve2d(pixel(1), edge, {stride: 2, padding: 1})[1], [1, -1, 0]);
+});
 test('convolution: input and kernel remain unchanged', () => {
   const input = Object.freeze([Object.freeze([1, 2]), Object.freeze([3, 4])]);
   const kernel = Object.freeze([Object.freeze([2])]);
@@ -106,6 +116,15 @@ test('RNN: derivatives can vanish or grow even with a bounded hidden state', () 
 test('RNN: tanh saturation can shrink gradients even when recurrent weight exceeds one', () => {
   const step = rnnSequence([20], {wx: 1, wh: 2})[0];
   assert.ok(Math.abs(step.localDerivative) < 1e-12);
+});
+test('RNN lab tip: with the default inputs, w_h = 2.0 gives less final sensitivity than w_h = 1.2', () => {
+  const finalSensitivity = wh => rnnSequence([1, 0.5, -1, 0.8], {wx: 0.8, wh}).at(-1).gradientToInitial;
+  assert.equal(finalSensitivity(1.2).toFixed(3), '0.172');
+  assert.equal(finalSensitivity(2).toFixed(3), '0.018');
+  assert.deepEqual(rnnSequence([1, 0.5, -1, 0.8], {wx: 0.8, wh: 2}).map(s => s.hidden.toFixed(3)), ['0.664', '0.939', '0.792', '0.977']);
+  // The previous tip compared 0 with 1.5, which increases the sensitivity instead.
+  assert.equal(finalSensitivity(0), 0);
+  assert.equal(finalSensitivity(1.5).toFixed(3), '0.109');
 });
 test('RNN: zero recurrent weight removes dependence on the preceding state', () => {
   const a = rnnSequence([1, -1], {wh: 0, h0: 100});
@@ -190,6 +209,31 @@ test('position encoding: known paired frequencies match the paper equation', () 
   [Math.sin(2), Math.cos(2), Math.sin(0.02), Math.cos(0.02)].forEach((x, i) => near(result[i], x));
   near(result[0] ** 2 + result[1] ** 2, 1);
   near(result[2] ** 2 + result[3] ** 2, 1);
+});
+test('position offset: a fixed rotation maps every sine/cosine pair at p to the pair at p + k', () => {
+  for (const [position, offset, pair, dimensions] of [[0, 1, 0, 8], [4, 1, 0, 8], [4, 1, 1, 8], [37, 5, 2, 8], [100, 1, 3, 8], [9, 250, 255, 512]]) {
+    const r = positionOffsetRotation(position, offset, pair, dimensions);
+    const expected = positionalEncoding(position + offset, dimensions).slice(2 * pair, 2 * pair + 2);
+    r.rotated.forEach((value, i) => near(value, expected[i], 1e-9));
+    assert.deepEqual(r.target, expected);
+  }
+  const lab = positionOffsetRotation(4, 1, 0, 8);
+  matrixNear([lab.from, lab.rotated], [[Math.sin(4), Math.cos(4)], [Math.sin(5), Math.cos(5)]]);
+});
+test('position offset: the rotation depends on the offset and frequency, never on the position', () => {
+  const a = positionOffsetRotation(0, 3, 1, 8), b = positionOffsetRotation(91, 3, 1, 8);
+  assert.deepEqual(a.matrix, b.matrix);
+  near(a.angle, 0.3);
+  const [[c, s], [minusS, c2]] = a.matrix;
+  near(c * c + s * s, 1); near(c, c2); near(s, -minusS);
+});
+test('position offset: d = 8 wavelengths are 2π, 20π, 200π and 2000π', () => {
+  [2, 20, 200, 2000].forEach((multiple, pair) => near(positionOffsetRotation(0, 1, pair, 8).wavelength, multiple * Math.PI, 1e-9));
+});
+test('position offset: rejects incomplete pairs, negative offsets and non-integers', () => {
+  for (const args of [[0, 1, 4, 8], [0, 1, 2, 5], [0, -1, 0, 8], [0.5, 1, 0, 8], [0, 1, 0.5, 8], [0, 1, 0, 1], [Number.MAX_SAFE_INTEGER, 1, 0, 8]]) {
+    assert.throws(() => positionOffsetRotation(...args));
+  }
 });
 test('position encoding: supports an odd dimension and validates discrete positions', () => {
   assert.equal(positionalEncoding(3, 5).length, 5);

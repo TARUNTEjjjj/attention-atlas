@@ -1,7 +1,55 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { scoreBudget, layerNorm } from '../src/advanced-math.js';
+import { scoreBudget, layerNorm, dotProductSpread, softmaxSaturation } from '../src/advanced-math.js';
 const close = (actual, expected, tolerance = 1e-10) => assert.ok(Math.abs(actual - expected) < tolerance, `${actual} != ${expected}`);
+
+test('scaling sample: Var(q · k) tracks dₖ, and division by √dₖ restores variance 1', () => {
+  for (const dimensions of [1, 2, 8, 64, 512]) {
+    const r = dotProductSpread({ dimensions });
+    assert.equal(r.samples, 2000);
+    assert.equal(r.theoryVariance, dimensions);
+    close(r.theoryStd, Math.sqrt(dimensions));
+    assert.ok(Math.abs(r.variance / dimensions - 1) < 0.12, `variance ${r.variance} for dₖ = ${dimensions}`);
+    close(r.scaledVariance, r.variance / dimensions);
+    close(r.scaledStd * Math.sqrt(dimensions), r.std);
+    assert.ok(Math.abs(r.mean) < 5 * Math.sqrt(dimensions / r.samples), `mean ${r.mean}`);
+  }
+  const large = dotProductSpread({ dimensions: 64, samples: 20000, seed: 7 });
+  assert.ok(Math.abs(large.variance / 64 - 1) < 0.04, `variance ${large.variance}`);
+});
+test('scaling sample: the fixed seed makes every learner see the same numbers', () => {
+  assert.deepEqual(dotProductSpread({ dimensions: 16 }), dotProductSpread({ dimensions: 16 }));
+  assert.notEqual(dotProductSpread({ dimensions: 16, seed: 1 }).variance, dotProductSpread({ dimensions: 16, seed: 2 }).variance);
+  assert.equal(dotProductSpread({ dimensions: 16 }).seed, 2017);
+});
+test('scaling sample: rejects unbounded or malformed requests before sampling', () => {
+  for (const dimensions of [0, 4097, 1.5, NaN, Infinity, '64']) assert.throws(() => dotProductSpread({ dimensions }));
+  for (const samples of [1, 20001, 2.5]) assert.throws(() => dotProductSpread({ dimensions: 4, samples }));
+  for (const seed of [-1, 2 ** 32, 0.5]) assert.throws(() => dotProductSpread({ dimensions: 4, seed }));
+});
+test('softmax saturation: dₖ = 64 matches the worked example in the lesson', () => {
+  const r = softmaxSaturation(64);
+  assert.equal(r.gap, 8);
+  assert.deepEqual(r.unscaled.scores, [8, 0, 0, 0]);
+  assert.deepEqual(r.scaled.scores, [1, 0, 0, 0]);
+  close(r.unscaled.weights[0], Math.exp(8) / (Math.exp(8) + 3), 1e-12);
+  close(r.scaled.weights[0], Math.E / (Math.E + 3), 1e-12);
+  assert.equal(r.unscaled.weights[0].toFixed(3), '0.999');
+  assert.equal(r.unscaled.weights[1].toFixed(4), '0.0003');
+  assert.equal(r.scaled.weights.map(w => w.toFixed(3)).join(' '), '0.475 0.175 0.175 0.175');
+  assert.equal(r.unscaled.slope.toFixed(4), '0.0010');
+  assert.equal(r.scaled.slope.toFixed(3), '0.249');
+  close(r.scaled.slope, r.scaled.weights[0] * (1 - r.scaled.weights[0]));
+});
+test('softmax saturation: the unscaled slope collapses as dₖ grows; the scaled one is constant', () => {
+  const sizes = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512].map(d => softmaxSaturation(d));
+  for (let i = 1; i < sizes.length; i++) assert.ok(sizes[i].unscaled.slope < sizes[i - 1].unscaled.slope);
+  for (const r of sizes) { close(r.scaled.slope, sizes[0].scaled.slope, 1e-15); close(r.unscaled.weights.reduce((a, b) => a + b, 0), 1, 1e-12); }
+  assert.deepEqual(sizes[0].unscaled, sizes[0].scaled);
+  assert.ok(sizes.at(-1).unscaled.slope < 1e-9);
+  for (const bad of [0, 4097, 2.5]) assert.throws(() => softmaxSaturation(bad));
+  assert.throws(() => softmaxSaturation(4, 0));
+});
 
 test('score budget: known score tensor count and binary units', () => {
   const result = scoreBudget({ tokens: 1024, heads: 8, bytesPerElement: 2 });

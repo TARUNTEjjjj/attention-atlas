@@ -66,6 +66,52 @@ test('content: numerical answer keys agree with independent arithmetic', () => {
   assert.equal(answer('attention-shape'), '3 × 5');
   const n = 7;
   assert.equal(Number(answer('quadratic-scores')), ((2 * n) ** 2) / n ** 2);
+  assert.equal(Number(answer('scaled-variance')), Math.sqrt(64 * 1));
+  assert.equal(answer('softmax-saturation'), (Math.exp(8) / (Math.exp(8) + 3)).toFixed(3));
+  assert.equal(Number(answer('head-dimension')), 512 / 8);
+  const lrate = 512 ** -0.5 * Math.min(4000 ** -0.5, 4000 * 4000 ** -1.5);
+  assert.equal(answer('warmup-peak'), `About ${(lrate * 1e4).toFixed(1)} × 10⁻⁴`);
+  assert.equal(answer('ffn-parameters'), (512 * 2048 + 2048 + 2048 * 512 + 512).toLocaleString('en-US'));
+  assert.equal(answer('path-length'), 'Self-attention');
+});
+
+test('content: worked numbers in the lessons agree with independent arithmetic', () => {
+  const text = lessons.map(lesson => lesson.body).join('\n');
+  const encoderAttention = 8 * 3 * 512 * 64 + 512 * 512, ffn = 512 * 2048 + 2048 + 2048 * 512 + 512, layerNorms = 2 * (512 + 512);
+  const decoderLayer = 2 * encoderAttention + ffn + 3 * (512 + 512);
+  for (const value of [encoderAttention, ffn, layerNorms, encoderAttention + ffn + layerNorms, decoderLayer, 50 ** 2 * 512, 50 * 512 ** 2]) {
+    assert.ok(text.includes(value.toLocaleString('en-US')), `Lessons should show ${value.toLocaleString('en-US')}`);
+  }
+  assert.equal(4096 ** 2 * 512 / (4096 * 512 ** 2), 8);
+  assert.ok(text.includes(`≈ ${(1 / Math.sqrt(2_048_000) * 1e4).toFixed(2)} × 10⁻⁴`));
+  assert.ok(text.includes(`about ${(512 ** -0.5 * 16000 ** -0.5 * 1e4).toFixed(2)} × 10⁻⁴`));
+  assert.ok(Math.abs(ffn / (encoderAttention + ffn + layerNorms) - 2 / 3) < 0.01, 'FFN share should be about two-thirds');
+  // Table 1's O(n²·d) entry omits the projections; the lesson must say so next to the n < d comparison.
+  assert.match(text, /projections add O\(n · d²\) more/);
+});
+
+test('content: every later-architecture edit in the Transformer lesson links a primary source', () => {
+  const body = lessons.find(lesson => lesson.id === 'transformer').body;
+  const map = body.slice(body.indexOf('After 2017'));
+  for (const url of ['https://arxiv.org/abs/1810.04805', 'https://arxiv.org/abs/1801.10198', 'https://arxiv.org/abs/2002.04745', 'https://arxiv.org/abs/2104.09864', 'https://arxiv.org/abs/2205.14135']) {
+    assert.ok(map.includes(`href="${url}"`), `After-2017 map should link ${url}`);
+    assert.ok(sources.some(source => source.url === url), `${url} should also be in the source list`);
+  }
+});
+
+test('content: advertised counts match the page, the data and the README', async () => {
+  const {learningContent} = await import('../src/learning-tools.js');
+  const readme = await readFile(new URL('README.md', root), 'utf8');
+  const {glossary, experiments} = learningContent();
+  const labMounts = attributes(html, 'class').filter(name => name.split(/\s+/).includes('lab')).length;
+  assert.match(html, new RegExp(`<span>${String(labMounts).padStart(2, '0')} interactive labs</span>`));
+  const words = {6: 'six', 7: 'seven', 13: 'thirteen', 20: 'twenty', 25: 'twenty-five'};
+  assert.ok(html.includes(`All ${words[labMounts]} lab calculations run locally`));
+  assert.ok(readme.includes(`${words[quiz.length]} explained checkpoints`), 'README checkpoint count');
+  assert.ok(readme.includes(`${words[glossary.length]} glossary concepts`), 'README glossary count');
+  assert.ok(readme.includes(`${words[experiments.length]} guided experiments`), 'README experiment count');
+  for (const experiment of experiments) assert.ok(CHAPTERS.includes(experiment.chapter), `Unknown chapter ${experiment.chapter}`);
+  assert.equal(new Set(experiments.map(experiment => experiment.number)).size, experiments.length);
 });
 
 test('content: research references use HTTPS and the guide retains the original source links', () => {
