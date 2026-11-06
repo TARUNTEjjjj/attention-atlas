@@ -37,6 +37,11 @@ test('learning search: unknown or non-text input is safe and yields no results',
  assert.deepEqual(searchLearningItems('quantum entanglement'),[]);
  assert.deepEqual(searchLearningItems('<img src=x onerror=alert(1)>'),[]);
 });
+test('learning search: a typed query of only symbols or punctuation matches nothing, not every chapter',()=>{
+ // The search box reports a typed query as "N matches", so returning the empty-box chapter list here would claim 6 false matches.
+ for(const query of ['???','√','×','∑','!','...','<>','—','“ ”'])assert.deepEqual(searchLearningItems(query),[],`query ${JSON.stringify(query)}`);
+ assert.equal(searchLearningItems('').length,6);
+});
 test('learning search: returned data cannot mutate the shared index',()=>{
  const first=searchLearningItems('softmax')[0];first.title='changed';first.aliases.push('attacker');
  const next=searchLearningItems('softmax')[0];assert.equal(next.title,'Softmax');assert.ok(!next.aliases.includes('attacker'));

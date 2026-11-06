@@ -29,7 +29,8 @@ const publicCopy = item => ({ ...item, aliases:[...item.aliases] });
 export function searchLearningItems(query) {
   if (typeof query !== 'string') return [];
   const needle=normalize(query.slice(0,120));
-  if (!needle) return chapters.map(publicCopy);
+  // Only a blank box lists the chapters. A typed query that normalizes to nothing (e.g. "???" or "√") matches nothing.
+  if (!needle) return query.trim() ? [] : chapters.map(publicCopy);
   const words=needle.split(' ');
   return index.map((item,order)=>{
     const title=normalize(item.title), aliases=item.aliases.map(normalize);
