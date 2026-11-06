@@ -26,10 +26,10 @@ export function mountRNN(element) {
         <input id="${id}-inputs" type="text" inputmode="decimal" value="1, 0.5, -1, 0.8" spellcheck="false" aria-describedby="${id}-hint ${id}-error">
         <small id="${id}-hint">1–10 numbers, each between −5 and 5, separated by commas.</small>
       </label>
-      <label class="control" for="${id}-wx">Input weight w<sub>x</sub> <output class="range-value" id="${id}-wx-value">0.8</output>
+      <label class="control" for="${id}-wx">Input weight wₓ <output class="range-value" id="${id}-wx-value">0.8</output>
         <input id="${id}-wx" type="range" min="-2" max="2" step="0.1" value="0.8">
       </label>
-      <label class="control" for="${id}-wh">Memory weight w<sub>h</sub> <output class="range-value" id="${id}-wh-value">0.7</output>
+      <label class="control" for="${id}-wh">Memory weight wₕ <output class="range-value" id="${id}-wh-value">0.7</output>
         <input id="${id}-wh" type="range" min="-2" max="2" step="0.1" value="0.7">
       </label>
     </div>
