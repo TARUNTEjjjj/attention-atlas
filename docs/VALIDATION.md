@@ -1,3 +1,13 @@
+# Persistence review — 7 November 2026 (India Standard Time)
+
+- **107 tests pass**, followed by the production build and JavaScript syntax checks. The static release is `2401bada002f160c`, with 14 immutable assets and 153,007 bytes total before compression. No npm dependencies are declared.
+- Reproduced an existing stale-tab problem: one tab's chapter mark replaced another tab's independent mark, and a later click in an old tab could restore progress after a reset. Saves now apply only the tab's changes to the latest stored snapshot; cross-tab notifications reread storage rather than replaying queued event payloads.
+- Regression coverage includes independent chapter changes, reset followed by a stale-tab edit, explicit quiz retries, imports preserving a newly saved correct answer, corrupt storage, failed writes, ignored unrelated storage events and unsubscription. Unsaved session work is retained when another tab changes storage; export remains available.
+- Corrupt JSON is no longer silently overwritten by the next quiz or chapter action. A confirmed reset remains the explicit way to replace unreadable saved progress.
+- These checks model sequential interleavings and queued browser events. `localStorage` is still device-local, and this is not a claim of atomic transactions for exactly simultaneous writes from separate browser processes. Browser and hosted verification are performed separately before release.
+
+---
+
 # Release validation — 1.1.0
 
 Tested 5 November 2026 (India Standard Time).
