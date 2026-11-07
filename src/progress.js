@@ -34,7 +34,7 @@ export function mergeProgress(current,incoming,quiz=[]) {
 
 /** Apply only this tab's changes to the latest stored snapshot. A stale tab must
  * not restore chapter marks or answers that another tab deliberately removed. */
-export function commitProgress(storage, previous, next, quiz = [], { reset = false, preserveCorrect = false } = {}) {
+export function commitProgress(storage, previous, next, quiz = [], { reset = false, preserveCorrect = false, imported } = {}) {
   const before = normalizeProgress(previous, quiz), desired = normalizeProgress(next, quiz);
   try {
     const loaded = loadProgress(storage, quiz);
@@ -52,6 +52,16 @@ export function commitProgress(storage, previous, next, quiz = [], { reset = fal
         if (preserveCorrect && data.answers[q.id] === q.answer) continue;
         if (desired.answers[q.id] === undefined) delete data.answers[q.id];
         else data.answers[q.id] = desired.answers[q.id];
+      }
+    }
+    if (imported) {
+      // Import is an explicit request, even if the stale tab already displayed
+      // the same mark. Apply only the backup's fields, not all stale local data.
+      const incoming = normalizeProgress(imported, quiz);
+      data.completed = [...new Set([...data.completed, ...incoming.completed])];
+      for (const q of quiz) {
+        if (incoming.answers[q.id] !== undefined && data.answers[q.id] !== q.answer)
+          data.answers[q.id] = incoming.answers[q.id];
       }
     }
     if (!saveProgress(storage, data)) return { data: desired, available: false };
