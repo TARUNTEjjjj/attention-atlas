@@ -31,3 +31,53 @@ export function mergeProgress(current,incoming,quiz=[]) {
   for(const q of quiz)if(local.answers[q.id]===q.answer)answers[q.id]=q.answer;
   return {completed:[...new Set([...local.completed,...imported.completed])],answers};
 }
+
+/** Apply only this tab's changes to the latest stored snapshot. A stale tab must
+ * not restore chapter marks or answers that another tab deliberately removed. */
+export function commitProgress(storage, previous, next, quiz = [], { reset = false, preserveCorrect = false, imported } = {}) {
+  const before = normalizeProgress(previous, quiz), desired = normalizeProgress(next, quiz);
+  try {
+    const loaded = loadProgress(storage, quiz);
+    if (!reset && !loaded.available) return { data: desired, available: false };
+    const data = reset ? desired : normalizeProgress(loaded.data, quiz);
+    if (!reset) {
+      for (const chapter of CHAPTERS) {
+        if (before.completed.includes(chapter) === desired.completed.includes(chapter)) continue;
+        data.completed = desired.completed.includes(chapter)
+          ? [...new Set([...data.completed, chapter])]
+          : data.completed.filter(id => id !== chapter);
+      }
+      for (const q of quiz) {
+        if (before.answers[q.id] === desired.answers[q.id]) continue;
+        if (preserveCorrect && data.answers[q.id] === q.answer) continue;
+        if (desired.answers[q.id] === undefined) delete data.answers[q.id];
+        else data.answers[q.id] = desired.answers[q.id];
+      }
+    }
+    if (imported) {
+      // Import is an explicit request, even if the stale tab already displayed
+      // the same mark. Apply only the backup's fields, not all stale local data.
+      const incoming = normalizeProgress(imported, quiz);
+      data.completed = [...new Set([...data.completed, ...incoming.completed])];
+      for (const q of quiz) {
+        if (incoming.answers[q.id] !== undefined && data.answers[q.id] !== q.answer)
+          data.answers[q.id] = incoming.answers[q.id];
+      }
+    }
+    if (!saveProgress(storage, data)) return { data: desired, available: false };
+    return { data, available: true };
+  } catch { return { data: desired, available: false }; }
+}
+
+/** Events are queued snapshots. Read storage again so an old event cannot
+ * resurrect progress after a later reset; clear() sends a null key. */
+export function subscribeProgressChanges(target, storage, quiz, onChange, onError) {
+  const listener = event => {
+    if ((event.key !== STORAGE_KEY && event.key !== null) || event.storageArea !== storage) return;
+    const result = loadProgress(storage, quiz);
+    if (result.available) onChange(result.data);
+    else onError();
+  };
+  target.addEventListener('storage', listener);
+  return () => target.removeEventListener('storage', listener);
+}

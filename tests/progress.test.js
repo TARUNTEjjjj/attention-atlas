@@ -122,3 +122,64 @@ test('progress merge: older exports cannot erase correct answers; correct import
  assert.deepEqual(mergeProgress(current,incoming,qs),{completed:['cnn','rnn'],answers:{a:1,b:0}});
  assert.deepEqual(current,{completed:['cnn'],answers:{a:1,b:1}});
 });
+
+test('stale tabs preserve independent marks and do not resurrect progress after reset', async () => {
+  const {commitProgress}=await import('../src/progress.js');
+  const storage=memoryStorage(), first=empty(), second=empty();
+  const one=commitProgress(storage,first,{completed:['cnn'],answers:{}},quiz);
+  const two=commitProgress(storage,second,{completed:['rnn'],answers:{}},quiz);
+  assert.deepEqual(two.data.completed,['cnn','rnn']);
+  commitProgress(storage,two.data,empty(),quiz,{reset:true});
+  const after=commitProgress(storage,one.data,{completed:['cnn','attention'],answers:{}},quiz);
+  assert.deepEqual(after.data.completed,['attention']);
+});
+
+test('quiz retries are explicit deletions and imports preserve newly saved correct answers', async () => {
+  const {commitProgress}=await import('../src/progress.js');
+  const questions=[{id:'q',choices:['a','b'],answer:1}];
+  const storage=memoryStorage();
+  const correct=commitProgress(storage,empty(),{completed:[],answers:{q:1}},questions);
+  const imported=commitProgress(storage,empty(),{completed:[],answers:{q:0}},questions,{preserveCorrect:true});
+  assert.equal(imported.data.answers.q,1);
+  const retry=commitProgress(storage,correct.data,empty(),questions);
+  assert.deepEqual(retry.data.answers,{});
+});
+
+test('corrupt saved progress is preserved until an explicit reset and failed writes retain the session', async()=>{
+  const {commitProgress}=await import('../src/progress.js');
+  const desired={completed:['cnn'],answers:{}};
+  const storage=memoryStorage('{');
+  assert.deepEqual(commitProgress(storage,empty(),desired,quiz),{data:desired,available:false});
+  assert.equal(storage.getItem(STORAGE_KEY),'{');
+  assert.equal(commitProgress(storage,empty(),empty(),quiz,{reset:true}).available,true);
+  storage.setItem=()=>{throw new Error('quota');};
+  assert.deepEqual(commitProgress(storage,empty(),desired,quiz),{data:desired,available:false});
+});
+
+test('queued progress events use current storage, including reset, and ignore unrelated sources', async()=>{
+  const {subscribeProgressChanges}=await import('../src/progress.js');
+  const listeners=new Set(),target={addEventListener:(_,fn)=>listeners.add(fn),removeEventListener:(_,fn)=>listeners.delete(fn)};
+  const storage=memoryStorage();let current,failures=0;
+  const stop=subscribeProgressChanges(target,storage,quiz,value=>{current=value;},()=>failures++);
+  const send=(key,newValue,storageArea=storage)=>{for(const fn of listeners)fn({key,newValue,storageArea});};
+  saveProgress(storage,{completed:['rnn'],answers:{}});
+  send(STORAGE_KEY,JSON.stringify({completed:['cnn'],answers:{}}));
+  assert.deepEqual(current.completed,['rnn']);
+  saveProgress(storage,empty());send(null,null);assert.deepEqual(current,empty());
+  saveProgress(storage,{completed:['cnn'],answers:{}});send('unrelated',null);send(STORAGE_KEY,null,{});assert.deepEqual(current,empty());
+  storage.setItem(STORAGE_KEY,'{');send(STORAGE_KEY,'{}');assert.equal(failures,1);assert.deepEqual(current,empty());
+  stop();saveProgress(storage,{completed:['rnn'],answers:{}});send(STORAGE_KEY,null);assert.deepEqual(current,empty());
+});
+
+test('an explicit import restores matching stale marks without reviving unrelated erased progress', async()=>{
+  const {commitProgress,mergeProgress}=await import('../src/progress.js');
+  const questions=[{id:'q',choices:['a','b'],answer:1},{id:'other',choices:['a','b'],answer:1}];
+  const stale={completed:['cnn','rnn'],answers:{q:0,other:1}};
+  const incoming={completed:['cnn'],answers:{q:0}};
+  const storage=memoryStorage(JSON.stringify(empty()));
+  const result=commitProgress(storage,stale,mergeProgress(stale,incoming,questions),questions,{preserveCorrect:true,imported:incoming});
+  assert.deepEqual(result,{data:{completed:['cnn'],answers:{q:0}},available:true});
+  saveProgress(storage,{completed:['attention'],answers:{q:1}});
+  const preserved=commitProgress(storage,stale,mergeProgress(stale,incoming,questions),questions,{preserveCorrect:true,imported:incoming});
+  assert.deepEqual(preserved.data,{completed:['attention','cnn'],answers:{q:1}});
+});
