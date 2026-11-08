@@ -1,4 +1,4 @@
-import {mountComplexity,mountNormalization} from './advanced-labs.js';
+import {mountComplexity,mountNormalization,mountScaling} from './advanced-labs.js';
 import {mountLearningTools} from './learning-tools.js';
 import {lessons,quiz,sources} from './lessons.js';
 import {mountCNN,mountAttention,mountTransformer} from './visual-labs.js';
@@ -11,8 +11,8 @@ let storedProgress=normalizeProgress(progress,quiz);
 let unsaved=false;
 let questionIndex=0;
 for(const lesson of lessons){const holder=document.querySelector(`[data-lesson="${lesson.id}"]`);holder.innerHTML=`<details><summary>The maths, explained · ${lesson.title}</summary><div class="lesson-body">${lesson.body}</div></details>`;}
-mountLearningTools($('#learning-tools'));mountNormalization($('#normalization-lab'));mountComplexity($('#complexity-lab'));mountCNN($('#cnn-lab'));mountRNN($('#rnn-lab'));mountAttention($('#attention-lab'));mountTransformer($('#transformer-map'));mountPosition($('#position-lab'));
-for(const [id,title] of [['rnn-lab','EXPERIMENT 02 / TRACE THE MEMORY'],['position-lab','EXPERIMENT 04 / A POSITION SIGNATURE']]){const lab=document.getElementById(id),body=document.createElement('div');body.className='lab-body';body.append(...lab.childNodes);lab.append(body);const bar=document.createElement('div');bar.className='lab-topbar';bar.innerHTML=`<span class="eyebrow">${title}</span><span class="pill">Change a parameter</span>`;document.getElementById(id).prepend(bar);}
+mountLearningTools($('#learning-tools'));mountScaling($('#scaling-lab'));mountNormalization($('#normalization-lab'));mountComplexity($('#complexity-lab'));mountCNN($('#cnn-lab'));mountRNN($('#rnn-lab'));mountAttention($('#attention-lab'));mountTransformer($('#transformer-map'));mountPosition($('#position-lab'));
+for(const [id,title] of [['rnn-lab','EXPERIMENT 02 / TRACE THE MEMORY'],['position-lab','EXPERIMENT 05 / A POSITION SIGNATURE']]){const lab=document.getElementById(id),body=document.createElement('div');body.className='lab-body';body.append(...lab.childNodes);lab.append(body);const bar=document.createElement('div');bar.className='lab-topbar';bar.innerHTML=`<span class="eyebrow">${title}</span><span class="pill">Change a parameter</span>`;document.getElementById(id).prepend(bar);}
 function storageStatus(){ $('#storage-status').textContent=available?'Progress is saved on this browser only.': 'Browser storage is unavailable or unreadable. You can still use every lab and export progress for this session.'; }
 function disarmReset(){resetArmed=false;$('#reset-progress').textContent='Reset local progress';}
 function persist(options){disarmReset();const result=commitProgress(storage,storedProgress,progress,quiz,options);progress=result.data;available=result.available;unsaved=!available;if(available)storedProgress=normalizeProgress(progress,quiz);storageStatus();}
