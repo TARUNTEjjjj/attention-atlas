@@ -33,3 +33,21 @@ test('headers: immutable cache is limited to release-named assets; HTML is reval
  assert.match(headers,/\/index\.html\n  Cache-Control: public, max-age=0, must-revalidate/);
  assert.doesNotMatch(headers.split('/assets/*')[0],/Cache-Control.*immutable/);
 });
+
+
+test('build rejects source subdirectories and symlink ancestors without changing them', async t => {
+  const { mkdtemp, writeFile, symlink } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const fixture = await mkdtemp(resolve(tmpdir(),'atlas-output-'));
+  t.after(()=>rm(fixture,{recursive:true,force:true}));
+  await mkdir(resolve(fixture,'src'));
+  await writeFile(resolve(fixture,'src/keep.js'),'source');
+  await writeFile(resolve(fixture,'.gitignore'),'keep');
+  await assert.rejects(buildSite({root:fixture,outDir:resolve(fixture,'.gitignore')}),/existing file/);
+  assert.equal(await readFile(resolve(fixture,'.gitignore'),'utf8'),'keep');
+  for(const target of ['src','SRC','Src/nested','src/nested','scripts','tests','docs','.git','.GIT'])
+    await assert.rejects(buildSite({root:fixture,outDir:resolve(fixture,target)}),/protected/);
+  await symlink(resolve(fixture,'src'),resolve(fixture,'alias'));
+  await assert.rejects(buildSite({root:fixture,outDir:resolve(fixture,'alias/output')}),/symbolic links/);
+  assert.equal(await readFile(resolve(fixture,'src/keep.js'),'utf8'),'source');
+});
