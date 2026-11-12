@@ -1,5 +1,16 @@
 export const STORAGE_KEY = 'attention-atlas-progress-v1';
 export const CHAPTERS = ['foundations','cnn','rnn','attention','transformer','practice'];
+
+/** A revision queue based on current answers, not an estimate of mastery.
+ * Incorrect answers come first, then unseen questions; source order breaks ties. */
+export function revisionPlan(value, quiz = []) {
+  const progress = normalizeProgress(value, quiz);
+  const pending = quiz.map((question, index) => ({ id: question.id, index,
+    topic: question.topic, status: progress.answers[question.id] === undefined
+      ? 'unanswered' : progress.answers[question.id] === question.answer ? 'correct' : 'incorrect' }));
+  return [...pending.filter(item => item.status === 'incorrect'),
+    ...pending.filter(item => item.status === 'unanswered')];
+}
 export function normalizeProgress(value, quiz = []) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {completed:[], answers:{}};
   const completed = [...new Set(Array.isArray(value.completed) ? value.completed.filter(x=>CHAPTERS.includes(x)) : [])];

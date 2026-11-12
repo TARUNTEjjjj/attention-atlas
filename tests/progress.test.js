@@ -183,3 +183,23 @@ test('an explicit import restores matching stale marks without reviving unrelate
   const preserved=commitProgress(storage,stale,mergeProgress(stale,incoming,questions),questions,{preserveCorrect:true,imported:incoming});
   assert.deepEqual(preserved.data,{completed:['attention','cnn'],answers:{q:1}});
 });
+
+
+test('revision plan prioritizes mistakes, then unanswered questions without changing saved answers', async () => {
+  const { revisionPlan } = await import('../src/progress.js');
+  const questions = [
+    {id:'a', topic:'cnn', choices:['yes','no'], answer:0},
+    {id:'b', topic:'rnn', choices:['yes','no'], answer:1},
+    {id:'c', topic:'attention', choices:['yes','no'], answer:0},
+    {id:'d', topic:'transformer', choices:['yes','no'], answer:1},
+  ];
+  const saved = { completed:[], answers:{b:0,c:0,d:1} };
+  const before = JSON.stringify(saved);
+  assert.deepEqual(revisionPlan(saved, questions).map(row => [row.id,row.index,row.status]),
+    [['b',1,'incorrect'],['a',0,'unanswered']]);
+  assert.equal(JSON.stringify(saved), before);
+  assert.equal(revisionPlan({answers:{a:0,b:1,c:0,d:1}},questions).length,0);
+  assert.deepEqual(revisionPlan(null,questions).map(row=>row.index),[0,1,2,3]);
+  assert.equal(revisionPlan({answers:{a:99}},questions)[0].status,'unanswered');
+  assert.deepEqual(revisionPlan({},[]),[]);
+});

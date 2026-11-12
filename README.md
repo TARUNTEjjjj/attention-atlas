@@ -71,3 +71,14 @@ node scripts/load-test.mjs --scenario cold --sessions 10000 --rps 500 --concurre
 ```
 
 Remove `--dry-run` only when intentionally testing the owner-controlled live service. The runner stops on HTTP 403/429 or challenge responses, excess failures, sustained high latency, or the time cap. Build and live deployment must match byte-for-byte. Do not deploy while a test is running. Full bundle session timing includes pacing and sequential asset fetches; it is not a browser load or Web Vitals score.
+
+
+## Guided revision
+
+The practice sidebar suggests incorrect answers before unanswered questions and
+shows both counts. Following a suggestion opens the existing explanation;
+only **Try again** clears that answer. The queue updates after imports, resets,
+and cross-tab updates. It stays entirely on-device and does not infer mastery.
+
+Custom build destinations cannot overlap source, tests, documentation or Git
+metadata, and cannot pass through symbolic links.
