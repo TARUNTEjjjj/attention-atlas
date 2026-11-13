@@ -49,7 +49,7 @@ Buildless ES modules, semantic HTML, responsive CSS, code-drawn SVG diagrams and
 
 `src/math.js` is the pure numerical core. `src/visual-labs.js` renders CNN, attention and architecture experiments; `src/sequence-labs.js` renders recurrence and positions; `src/advanced-labs.js` renders the √dₖ scaling, LayerNorm and context-cost labs, with their arithmetic in `src/advanced-math.js`. The scaling lab's random sample uses a fixed seed, so every learner sees the same numbers. `src/lessons.js` holds original lesson text and checkpoints. `src/progress.js` validates local progress. `_headers` sets Cloudflare security headers, long-lived immutable caching for release-named assets, and revalidation for HTML. The build emits a deterministic release ID and an asset manifest. New releases change asset paths, avoiding stale JavaScript/CSS. A 350 KB build budget prevents accidental large dependencies.
 
-The GitHub repository is private. The deployed site's browser-delivered HTML, CSS and JavaScript are inherently readable by visitors; it contains no private credentials or learner data.
+The GitHub repository is public. The deployed site's browser-delivered HTML, CSS and JavaScript are inherently readable by visitors; it contains no private credentials or learner data.
 
 ## Research and scope
 
