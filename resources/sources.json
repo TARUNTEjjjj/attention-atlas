@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "project": "attention-atlas",
+  "title": "Attention Atlas resources",
+  "minStars": 500,
+  "maxPerCategory": 12,
+  "categories": [
+    {
+      "id": "foundations",
+      "title": "Neural network foundations",
+      "queries": [
+        "topic:neural-network topic:from-scratch"
+      ],
+      "seeds": [
+        "karpathy/micrograd",
+        "d2l-ai/d2l-en"
+      ]
+    },
+    {
+      "id": "attention",
+      "title": "Transformers and attention",
+      "queries": [
+        "topic:transformer topic:tutorial"
+      ],
+      "seeds": [
+        "karpathy/nanoGPT",
+        "huggingface/transformers"
+      ]
+    }
+  ]
+}

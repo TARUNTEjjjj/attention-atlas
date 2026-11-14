@@ -31,7 +31,7 @@ npm run dev
 
 Open http://localhost:8791. Serve the directory over HTTP: ES modules will not work reliably by double-clicking `index.html`.
 
-`npm run build` runs the tests and copies only deployable files into `dist/`. The website performs no API calls; its assets are approximately 190 KB before compression. Learner calculations run on the device. It does not train or host a language model.
+`npm run build` runs the tests and copies only deployable files into `dist/`. The learning labs perform no API calls; their assets are approximately 190 KB before compression. The optional resource library requests public catalog metadata from GitHub and falls back to its bundled edition. Learner calculations run on the device. It does not train or host a language model.
 
 ## Deploy to Cloudflare Pages
 
@@ -82,3 +82,7 @@ and cross-tab updates. It stays entirely on-device and does not infer mastery.
 
 Custom build destinations cannot overlap source, tests, documentation or Git
 metadata, and cannot pass through symbolic links.
+
+## GitHub resource collection
+
+Explore the project-specific [resource catalog](resources/README.md): curated references, star-ranked discovery, dated source metadata, cached failure recovery and an optional read-only server API. The daily refresh workflow updates the public catalog. The resource library reads the latest GitHub snapshot with a bundled offline fallback; application-code updates still follow the existing deployment process.
