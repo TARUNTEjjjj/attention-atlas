@@ -31,7 +31,7 @@ npm run dev
 
 Open http://localhost:8791. Serve the directory over HTTP: ES modules will not work reliably by double-clicking `index.html`.
 
-`npm run build` runs the tests and copies only deployable files into `dist/`. The learning labs perform no API calls; their assets are approximately 190 KB before compression. The optional resource library requests public catalog metadata from GitHub and falls back to its bundled edition. Learner calculations run on the device. It does not train or host a language model.
+`npm run build` runs the tests and copies only deployable files into `dist/`. Learner calculations run on the device. While the app is open, its resource collection checks public catalog metadata from GitHub automatically and saves validated snapshots for offline use. It does not train or host a language model.
 
 ## Deploy to Cloudflare Pages
 
