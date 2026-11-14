@@ -2,6 +2,7 @@ import {rm,mkdir,copyFile,readdir,readFile,writeFile,stat,lstat} from 'node:fs/p
 import {resolve,dirname,relative,sep,isAbsolute} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
+import {readAppRelease,stampAppVersion,writeAppVersion} from './app-release.mjs';
 import {stageResourceExplorer,readResourceExplorerInputs,stageRootOfflineWorker} from './stage-resource-explorer.mjs';
 const projectRoot=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const digest=data=>createHash('sha256').update(data).digest('hex');
@@ -22,7 +23,8 @@ export async function buildSite({root=projectRoot,outDir=resolve(root,'dist')}={
  }
  const sourcePaths=['styles.css','favicon.svg',...(await list(resolve(root,'src'))).map(p=>relative(root,p))].sort();
  const sources=await Promise.all(sourcePaths.map(async path=>({path,data:await readFile(resolve(root,path))})));
- const resourceInputs=[...await readResourceExplorerInputs(root)].map(([file,data])=>({path:'resources/'+file,data}));
+ const appRelease=await readAppRelease(root,{project:'attention-atlas',sourcePaths:['index.html','404.html','_headers','styles.css','favicon.svg','src','resources','offline-resources-worker.js','scripts/build.mjs','scripts/app-release.mjs','scripts/app-update-protocol.mjs','scripts/stage-resource-explorer.mjs'],ignorePaths:['resources/README.md','resources/sources.json']});
+ const resourceInputs=[...await readResourceExplorerInputs(root,{release:appRelease})].map(([file,data])=>({path:'resources/'+file,data}));
  const releaseInputs=[...sources,...resourceInputs,...await Promise.all(['index.html','404.html','_headers','offline-resources-worker.js'].map(async path=>({path,data:await readFile(resolve(root,path))})))];
  const release=digest(Buffer.concat(releaseInputs.flatMap(s=>[Buffer.from(s.path+'\0'),s.data,Buffer.from('\0')]))).slice(0,16);
  // Only this explicitly selected build directory is removed; never the source checkout.
@@ -31,14 +33,15 @@ export async function buildSite({root=projectRoot,outDir=resolve(root,'dist')}={
  const prefix=`/assets/${release}/`,assets=[];
  for(const {path,data} of sources){const target=resolve(outDir,'assets',release,path);await mkdir(dirname(target),{recursive:true});await writeFile(target,data);assets.push({path:prefix+path,bytes:data.length,sha256:digest(data)});}
  for(const page of ['index.html','404.html']){
-  let html=await readFile(resolve(root,page),'utf8');
+  let html=stampAppVersion(await readFile(resolve(root,page),'utf8'),appRelease);
   html=html.replace(/(href|src)="\/(styles\.css|favicon\.svg|src\/[^"?#]+)"/g,(_,attr,path)=>`${attr}="${prefix}${path}"`);
   html=html.replace('</head>',`<meta name="atlas-release" content="${release}"></head>`);
   await writeFile(resolve(outDir,page),html);
  }
  await copyFile(resolve(root,'_headers'),resolve(outDir,'_headers'));
- await stageResourceExplorer(root,resolve(outDir,'resources'));
- await stageRootOfflineWorker(root,outDir);
+ await stageResourceExplorer(root,resolve(outDir,'resources'),{release:appRelease});
+ await stageRootOfflineWorker(root,outDir,{release:appRelease});
+ await writeAppVersion(outDir,appRelease,{workers:[{scope:'/',script:'/offline-resources-worker.js'},{scope:'/resources/',script:'/resources/offline-worker.js'}]});
  const manifest={version:1,release,assets};
  await writeFile(resolve(outDir,'asset-manifest.json'),JSON.stringify(manifest,null,2)+'\n');
  const all=await list(outDir);const bytes=(await Promise.all(all.map(p=>stat(p)))).reduce((sum,s)=>sum+s.size,0);
