@@ -2,7 +2,7 @@ import {rm,mkdir,copyFile,readdir,readFile,writeFile,stat,lstat} from 'node:fs/p
 import {resolve,dirname,relative,sep,isAbsolute} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
-import {stageResourceExplorer,readResourceExplorerInputs} from './stage-resource-explorer.mjs';
+import {stageResourceExplorer,readResourceExplorerInputs,stageRootOfflineWorker} from './stage-resource-explorer.mjs';
 const projectRoot=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const digest=data=>createHash('sha256').update(data).digest('hex');
 async function list(dir){const result=[];for(const e of (await readdir(dir,{withFileTypes:true})).sort((a,b)=>a.name.localeCompare(b.name))){const p=resolve(dir,e.name);result.push(...e.isDirectory()?await list(p):[p]);}return result;}
@@ -11,7 +11,7 @@ export async function buildSite({root=projectRoot,outDir=resolve(root,'dist')}={
  const outputPath=relative(root,outDir);
  if(!outputPath||outputPath==='..'||outputPath.startsWith('..'+sep)||isAbsolute(outputPath))throw new Error('Build directory must be a child of the project root');
  // Reject source overlap and symlink ancestors before any recursive removal.
- const protectedPaths=['resources','src','scripts','tests','docs','.git','.github','index.html','404.html','_headers','styles.css','favicon.svg','package.json','README.md'];
+ const protectedPaths=['offline-resources-worker.js','resources','src','scripts','tests','docs','.git','.github','index.html','404.html','_headers','styles.css','favicon.svg','package.json','README.md'];
  const foldedPath=outputPath.toLowerCase();
  if(protectedPaths.some(path=>foldedPath===path.toLowerCase()||foldedPath.startsWith(path.toLowerCase()+sep)||path.toLowerCase().startsWith(foldedPath+sep)))throw new Error('Build directory overlaps protected project files');
  let ancestor=root;
@@ -23,7 +23,7 @@ export async function buildSite({root=projectRoot,outDir=resolve(root,'dist')}={
  const sourcePaths=['styles.css','favicon.svg',...(await list(resolve(root,'src'))).map(p=>relative(root,p))].sort();
  const sources=await Promise.all(sourcePaths.map(async path=>({path,data:await readFile(resolve(root,path))})));
  const resourceInputs=[...await readResourceExplorerInputs(root)].map(([file,data])=>({path:'resources/'+file,data}));
- const releaseInputs=[...sources,...resourceInputs,...await Promise.all(['index.html','404.html','_headers'].map(async path=>({path,data:await readFile(resolve(root,path))})))];
+ const releaseInputs=[...sources,...resourceInputs,...await Promise.all(['index.html','404.html','_headers','offline-resources-worker.js'].map(async path=>({path,data:await readFile(resolve(root,path))})))];
  const release=digest(Buffer.concat(releaseInputs.flatMap(s=>[Buffer.from(s.path+'\0'),s.data,Buffer.from('\0')]))).slice(0,16);
  // Only this explicitly selected build directory is removed; never the source checkout.
  if(resolve(outDir)===resolve(root)||relative(resolve(root),resolve(outDir)).startsWith('..'))throw new Error('Build directory must be a child of the project root');
@@ -38,6 +38,7 @@ export async function buildSite({root=projectRoot,outDir=resolve(root,'dist')}={
  }
  await copyFile(resolve(root,'_headers'),resolve(outDir,'_headers'));
  await stageResourceExplorer(root,resolve(outDir,'resources'));
+ await stageRootOfflineWorker(root,outDir);
  const manifest={version:1,release,assets};
  await writeFile(resolve(outDir,'asset-manifest.json'),JSON.stringify(manifest,null,2)+'\n');
  const all=await list(outDir);const bytes=(await Promise.all(all.map(p=>stat(p)))).reduce((sum,s)=>sum+s.size,0);
