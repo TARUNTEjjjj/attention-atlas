@@ -82,3 +82,7 @@ and cross-tab updates. It stays entirely on-device and does not infer mastery.
 
 Custom build destinations cannot overlap source, tests, documentation or Git
 metadata, and cannot pass through symbolic links.
+
+## GitHub resource collection
+
+Explore the project-specific [resource catalog](resources/README.md): curated references, star-ranked discovery, dated source metadata, cached failure recovery and an optional read-only server API. The repository includes a daily refresh workflow; hosted sites still follow their existing deployment process.
