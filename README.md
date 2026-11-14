@@ -31,7 +31,7 @@ npm run dev
 
 Open http://localhost:8791. Serve the directory over HTTP: ES modules will not work reliably by double-clicking `index.html`.
 
-`npm run build` runs the tests and copies only deployable files into `dist/`. The learning labs perform no API calls; their assets are approximately 190 KB before compression. The optional resource library requests public catalog metadata from GitHub and falls back to its bundled edition. Learner calculations run on the device. It does not train or host a language model.
+`npm run build` runs the tests and copies only deployable files into `dist/`. Learner calculations run on the device. While the app is open, its resource collection checks public catalog metadata from GitHub automatically and saves validated snapshots for offline use. It does not train or host a language model.
 
 ## Deploy to Cloudflare Pages
 
@@ -86,3 +86,5 @@ metadata, and cannot pass through symbolic links.
 ## GitHub resource collection
 
 Explore the project-specific [resource catalog](resources/README.md): curated references, star-ranked discovery, dated source metadata, cached failure recovery and an optional read-only server API. The daily refresh workflow updates the public catalog. The resource library reads the latest GitHub snapshot with a bundled offline fallback; application-code updates still follow the existing deployment process.
+
+The web resource library now checks for fresh public metadata every 15 minutes while an app tab is open and saves the latest validated collection for offline visits. It shows successful-check and source-observation dates separately, preserves good data during failures, and keeps its offline storage separate from application progress. See [resource update and offline behavior](resources/README.md#automatic-checks-and-offline-collections-in-the-web-app).
