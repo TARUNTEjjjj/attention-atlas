@@ -12,3 +12,6 @@
   Cache-Control: public, max-age=0, must-revalidate
 /asset-manifest.json
   Cache-Control: public, max-age=0, must-revalidate
+
+/offline-resources-worker.js
+  Cache-Control: no-cache
