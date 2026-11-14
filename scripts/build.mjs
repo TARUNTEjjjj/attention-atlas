@@ -2,7 +2,7 @@ import {rm,mkdir,copyFile,readdir,readFile,writeFile,stat,lstat} from 'node:fs/p
 import {resolve,dirname,relative,sep,isAbsolute} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
-import {stageResourceExplorer,publicResourceFiles} from './stage-resource-explorer.mjs';
+import {stageResourceExplorer,readResourceExplorerInputs} from './stage-resource-explorer.mjs';
 const projectRoot=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const digest=data=>createHash('sha256').update(data).digest('hex');
 async function list(dir){const result=[];for(const e of (await readdir(dir,{withFileTypes:true})).sort((a,b)=>a.name.localeCompare(b.name))){const p=resolve(dir,e.name);result.push(...e.isDirectory()?await list(p):[p]);}return result;}
@@ -22,7 +22,7 @@ export async function buildSite({root=projectRoot,outDir=resolve(root,'dist')}={
  }
  const sourcePaths=['styles.css','favicon.svg',...(await list(resolve(root,'src'))).map(p=>relative(root,p))].sort();
  const sources=await Promise.all(sourcePaths.map(async path=>({path,data:await readFile(resolve(root,path))})));
- const resourceInputs=await Promise.all(publicResourceFiles.map(async file=>({path:'resources/'+file,data:await readFile(resolve(root,'resources',file))})));
+ const resourceInputs=[...await readResourceExplorerInputs(root)].map(([file,data])=>({path:'resources/'+file,data}));
  const releaseInputs=[...sources,...resourceInputs,...await Promise.all(['index.html','404.html','_headers'].map(async path=>({path,data:await readFile(resolve(root,path))})))];
  const release=digest(Buffer.concat(releaseInputs.flatMap(s=>[Buffer.from(s.path+'\0'),s.data,Buffer.from('\0')]))).slice(0,16);
  // Only this explicitly selected build directory is removed; never the source checkout.
