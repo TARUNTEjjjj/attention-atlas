@@ -9,6 +9,9 @@ let storage;try{storage=window.localStorage;}catch{storage=null;}
 let {data:progress,available}=loadProgress(storage,quiz);
 let storedProgress=normalizeProgress(progress,quiz);
 let unsaved=false;
+let transientLearningState=false;
+window.appUpdateCanReload=()=>available&&!unsaved&&!transientLearningState&&!resetArmed;
+for(const type of ['pointerdown','keydown'])document.addEventListener(type,event=>{if(event.target.closest?.('#quiz,[id$="-lab"],#transformer-map,#learning-tools'))transientLearningState=true;},true);
 let questionIndex=0;
 for(const lesson of lessons){const holder=document.querySelector(`[data-lesson="${lesson.id}"]`);holder.innerHTML=`<details><summary>The maths, explained · ${lesson.title}</summary><div class="lesson-body">${lesson.body}</div></details>`;}
 mountLearningTools($('#learning-tools'));mountScaling($('#scaling-lab'));mountNormalization($('#normalization-lab'));mountComplexity($('#complexity-lab'));mountCNN($('#cnn-lab'));mountRNN($('#rnn-lab'));mountAttention($('#attention-lab'));mountTransformer($('#transformer-map'));mountPosition($('#position-lab'));

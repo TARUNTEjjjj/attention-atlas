@@ -14,7 +14,10 @@ test('release build: hashed assets resolve every page and module dependency; bui
  const manifest=JSON.parse(await readFile(resolve(outDir,'asset-manifest.json'),'utf8'));
  assert.ok(first.bytes<350000);assert.match(first.release,/^[a-f0-9]{16}$/);
  assert.equal(first.release,manifest.release);
- assert.equal(await readFile(resolve(outDir,'offline-resources-worker.js'),'utf8'),await readFile(resolve(root,'offline-resources-worker.js'),'utf8'));
+ const appVersion=JSON.parse(await readFile(resolve(outDir,'app-version.json'),'utf8'));
+ assert.match(html,new RegExp(appVersion.version));
+ assert.match(await readFile(resolve(outDir,'offline-resources-worker.js'),'utf8'),new RegExp(appVersion.version));
+ assert.match(await readFile(resolve(outDir,'resources/index.html'),'utf8'),new RegExp(appVersion.version));
  assert.doesNotMatch(html,/(?:href|src)="\/(?:src\/|styles\.css|favicon\.svg)/);
  for(const {path,sha256,bytes} of manifest.assets){
   assert.ok(path.startsWith(`/assets/${first.release}/`));

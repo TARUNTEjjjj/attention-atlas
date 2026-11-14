@@ -15,3 +15,6 @@
 
 /offline-resources-worker.js
   Cache-Control: no-cache
+
+/app-version.json
+  Cache-Control: no-store
