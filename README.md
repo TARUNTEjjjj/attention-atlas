@@ -31,7 +31,7 @@ npm run dev
 
 Open http://localhost:8791. Serve the directory over HTTP: ES modules will not work reliably by double-clicking `index.html`.
 
-`npm run build` runs the tests and copies only deployable files into `dist/`. Learner calculations run on the device. While the app is open, its resource collection checks public catalog metadata from GitHub automatically and saves validated snapshots for offline use. It does not train or host a language model.
+`npm run build` runs the tests and copies only deployable files into `dist/`: the two pages, `_headers`, what those pages load (`styles.css`, `favicon.svg`, and from `src/` the stylesheets and the module they link plus every file those import), the reviewed public files of the resource library in `resources/` and the offline worker. Anything else left in `src/`, such as a dotfile, a backup, a copy or a draft, is not published. Learner calculations run on the device. While the app is open, its resource collection checks public catalog metadata from GitHub automatically and saves validated snapshots for offline use. It does not train or host a language model.
 
 ## Deploy to Cloudflare Pages
 
@@ -55,7 +55,7 @@ The GitHub repository is public. The deployed site's browser-delivered HTML, CSS
 
 Grounded in [Attention Is All You Need](https://arxiv.org/abs/1706.03762) (Vaswani et al., 2017), the official [PyTorch Conv2d](https://docs.pytorch.org/docs/stable/generated/torch.nn.Conv2d.html) and [RNN](https://docs.pytorch.org/docs/stable/generated/torch.nn.RNN.html) references, and [Attention is not Explanation](https://aclanthology.org/N19-1357/) (Jain & Wallace, 2019). Explanations and diagrams are original; no paper figure is reproduced. Distinguishes the original post-normalized encoder–decoder from later decoder-only architectures. Attention visualizations are mixing weights, not causal explanations.
 
-After a deploy, `node scripts/check-live.mjs` verifies production file hashes, response statuses, security headers and the custom 404 against the current build.
+After a deploy, `node scripts/check-live.mjs` verifies production file hashes, response statuses, every header `_headers` sets for each path (security and caching) and the custom 404 against the current build.
 
 ## Capacity testing
 

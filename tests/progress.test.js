@@ -203,3 +203,34 @@ test('revision plan prioritizes mistakes, then unanswered questions without chan
   assert.equal(revisionPlan({answers:{a:99}},questions)[0].status,'unanswered');
   assert.deepEqual(revisionPlan({},[]),[]);
 });
+
+test('a mark or answer this tab set again after another tab undid it is saved, though the stale snapshot already had it', async()=>{
+  const {commitProgress}=await import('../src/progress.js');
+  const questions=[{id:'q',choices:['a','b'],answer:1}];
+  // This tab last saved cnn and q = 1. Unmarking and retrying failed to save; another tab then cleared both.
+  const stale={completed:['cnn'],answers:{q:1}},storage=memoryStorage(JSON.stringify(empty()));
+  // Values a stale tab merely still shows are not restored...
+  assert.deepEqual(commitProgress(storage,stale,stale,questions),{data:empty(),available:true});
+  // ...but the ones the learner set again here are, even though they equal the stale snapshot.
+  assert.deepEqual(commitProgress(storage,stale,stale,questions,{changed:{completed:['cnn'],answers:['q']}}),{data:stale,available:true});
+  assert.deepEqual(JSON.parse(storage.getItem(STORAGE_KEY)),stale);
+});
+
+test('a tab from an older release keeps the answers, chapters and fields it does not know when it saves', async()=>{
+  const {commitProgress}=await import('../src/progress.js');
+  // The older release has one question with two choices. A newer one, open in another tab, added questions, a chapter,
+  // a third choice to that question and a field of its own.
+  const older=[{id:'q',choices:['a','b'],answer:1},{id:'grown',choices:['a','b'],answer:0}];
+  const stored={completed:['cnn','training'],answers:{q:0,grown:2,'kv-cache':2,'label-smoothing':0},reviewed:['kv-cache']};
+  const storage=memoryStorage(JSON.stringify(stored));
+  const result=commitProgress(storage,{completed:['cnn'],answers:{q:0}},{completed:['cnn','rnn'],answers:{q:1}},older);
+  assert.deepEqual(result,{data:{completed:['cnn','rnn'],answers:{q:1}},available:true},'this tab sees only what it knows');
+  assert.deepEqual(JSON.parse(storage.getItem(STORAGE_KEY)),{...stored,completed:['cnn','training','rnn'],answers:{...stored.answers,q:1}});
+  // A retry and an import change only their own questions, too.
+  commitProgress(storage,result.data,{completed:['cnn','rnn'],answers:{}},older);
+  commitProgress(storage,empty(),empty(),older,{preserveCorrect:true,imported:{completed:['foundations'],answers:{}}});
+  assert.deepEqual(JSON.parse(storage.getItem(STORAGE_KEY)),{...stored,completed:['cnn','training','rnn','foundations'],answers:{grown:2,'kv-cache':2,'label-smoothing':0}});
+  // A confirmed reset still erases all progress on this browser.
+  commitProgress(storage,result.data,empty(),older,{reset:true});
+  assert.deepEqual(JSON.parse(storage.getItem(STORAGE_KEY)),empty());
+});

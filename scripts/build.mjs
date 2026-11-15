@@ -1,12 +1,36 @@
 import {rm,mkdir,copyFile,readdir,readFile,writeFile,stat,lstat} from 'node:fs/promises';
-import {resolve,dirname,relative,sep,isAbsolute} from 'node:path';
+import {resolve,dirname,relative,sep,isAbsolute,posix} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {readAppRelease,stampAppVersion,writeAppVersion} from './app-release.mjs';
-import {stageResourceExplorer,readResourceExplorerInputs,stageRootOfflineWorker} from './stage-resource-explorer.mjs';
+import {stageResourceExplorer,readResourceExplorerInputs,stageRootOfflineWorker,publicResourceFiles} from './stage-resource-explorer.mjs';
 const projectRoot=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const digest=data=>createHash('sha256').update(data).digest('hex');
 async function list(dir){const result=[];for(const e of (await readdir(dir,{withFileTypes:true})).sort((a,b)=>a.name.localeCompare(b.name))){const p=resolve(dir,e.name);result.push(...e.isDirectory()?await list(p):[p]);}return result;}
+// What the pages load, and nothing else: the stylesheets, icon and scripts the two pages link (the references the build
+// rewrites below), then every file under src/ that one of those names by a relative path, as an import, a stylesheet's
+// @import or a url() does. A backup, a copy or a draft left in src/ is named by none of them, whatever it is called, so
+// it stays out of the release, its ID, the app version and the public asset manifest.
+async function pageSources(root){
+ const found=new Set(),queue=[];
+ for(const page of ['index.html','404.html'])for(const [,path] of (await readFile(resolve(root,page),'utf8')).matchAll(/(?:href|src)="\/(styles\.css|favicon\.svg|src\/[^"?#]+)"/g))queue.push(path);
+ for(const path of queue){
+  if(found.has(path))continue;
+  found.add(path);
+  const references=/\.m?js$/.test(path)?/(['"`])(\.\.?\/[^'"`\s]+)\1/g:path.endsWith('.css')?/(?:@import\s+(?:url\(\s*)?|url\(\s*)(['"]?)([^'")\s]+)\1/g:null;
+  if(!references)continue;
+  for(const [,,reference] of (await readFile(resolve(root,path),'utf8')).matchAll(references)){
+   const target=posix.join(posix.dirname(path),reference.replace(/[?#].*$/,''));
+   if(!target.startsWith('src/'))continue; // a path that leaves src/ is not this build's to ship
+   const entry=await stat(resolve(root,target)).catch(()=>null);
+   // A folder, or a path with ${…} in it, is put together as the module runs, so nothing here says which files it needs.
+   // Stop rather than publish a release that is missing them.
+   if(entry?.isDirectory()||reference.includes('${'))throw new Error(`${path} builds the path of what it loads from ${reference} as it runs; name each file in full so the build can ship it`);
+   if(entry?.isFile())queue.push(target); // a quoted "./name" in prose that is not a file names nothing
+  }
+ }
+ return [...found].sort();
+}
 export async function buildSite({root=projectRoot,outDir=resolve(root,'dist')}={}){
  root=resolve(root);outDir=resolve(outDir);
  const outputPath=relative(root,outDir);
@@ -21,9 +45,12 @@ export async function buildSite({root=projectRoot,outDir=resolve(root,'dist')}={
   try{const entry=await lstat(ancestor);if(entry.isSymbolicLink())throw new Error('Build directory cannot contain symbolic links');if(!entry.isDirectory())throw new Error('Build directory cannot replace an existing file');}
   catch(error){if(error.code!=='ENOENT')throw error;}
  }
- const sourcePaths=['styles.css','favicon.svg',...(await list(resolve(root,'src'))).map(p=>relative(root,p))].sort();
+ const sourcePaths=await pageSources(root);
  const sources=await Promise.all(sourcePaths.map(async path=>({path,data:await readFile(resolve(root,path))})));
- const appRelease=await readAppRelease(root,{project:'attention-atlas',sourcePaths:['index.html','404.html','_headers','styles.css','favicon.svg','src','resources','offline-resources-worker.js','scripts/build.mjs','scripts/app-release.mjs','scripts/app-update-protocol.mjs','scripts/stage-resource-explorer.mjs'],ignorePaths:['resources/README.md','resources/sources.json']});
+ // The app version covers the same files, named one by one, so a stray file in src/ or resources/ cannot change it. From
+ // resources/ that is the library's public files, the ones staged below; readAppRelease leaves out catalog.json, whose
+ // refreshes are not app releases.
+ const appRelease=await readAppRelease(root,{project:'attention-atlas',sourcePaths:['index.html','404.html','_headers',...sourcePaths,...publicResourceFiles.map(file=>'resources/'+file),'offline-resources-worker.js','scripts/build.mjs','scripts/app-release.mjs','scripts/app-update-protocol.mjs','scripts/stage-resource-explorer.mjs']});
  const resourceInputs=[...await readResourceExplorerInputs(root,{release:appRelease})].map(([file,data])=>({path:'resources/'+file,data}));
  const releaseInputs=[...sources,...resourceInputs,...await Promise.all(['index.html','404.html','_headers','offline-resources-worker.js'].map(async path=>({path,data:await readFile(resolve(root,path))})))];
  const release=digest(Buffer.concat(releaseInputs.flatMap(s=>[Buffer.from(s.path+'\0'),s.data,Buffer.from('\0')]))).slice(0,16);

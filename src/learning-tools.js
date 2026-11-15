@@ -9,7 +9,7 @@ const chapters = [
 ];
 const glossary = [
   { id:'term-query', kind:'Concept', title:'Query (Q)', target:'attention', aliases:['q','query','queries','query vector'], description:'A vector used to score candidate keys. For one query, the scores determine how strongly each allowed value enters the output.', formula:'scoreⱼ = q · kⱼ / √dₖ' },
-  { id:'term-key', kind:'Concept', title:'Key (K)', target:'attention', aliases:['k','key','keys','key vector'], description:'A vector compared with a query. A key participates in matching; its paired value supplies the information being mixed.', formula:'QKᵀ has one score for each query–key pair.' },
+  { id:'term-key', kind:'Concept', title:'Key (K)', target:'attention', aliases:['k','key','keys','key vector'], description:'A vector compared with a query. A key participates in matching; its paired value supplies the information being mixed.', formula:'QKᵀ has one score, qᵢ · kⱼ, for each query–key pair.' },
   { id:'term-value', kind:'Concept', title:'Value (V)', target:'attention', aliases:['v','value','values','value vector'], description:'The information vector multiplied by an attention weight. Changing values can change outputs without changing the weights when Q and K stay fixed.', formula:'output = Σⱼ weightⱼ · valueⱼ' },
   { id:'term-softmax', kind:'Concept', title:'Softmax', target:'attention', aliases:['softmax','probabilities','normalization','exponential'], description:'Turns finite scores into positive weights that sum to one. A masked score of −∞ receives zero weight. Subtract the largest allowed score before exponentiating for numerical stability.', formula:'weightⱼ = exp(sⱼ − max(s)) / Σₖ exp(sₖ − max(s))' },
   { id:'term-convolution', kind:'Concept', title:'Convolution', target:'cnn', aliases:['convolution','convolve','cross correlation','kernel','filter'], description:'In this lab, a shared filter is multiplied with each local patch, then summed. Libraries commonly call this convolution, although the unflipped filter makes it cross-correlation.', formula:'One patch + one filter → one weighted sum.' },
@@ -21,7 +21,7 @@ const glossary = [
   { id:'term-causal', kind:'Concept', title:'Causal mask', target:'attention', aliases:['causal','causal mask','future','autoregressive','masking'], description:'Excludes future positions before softmax. The current position is allowed. During next-token training, shifting target inputs prevents the answer from being present at that position.', formula:'Allowed key positions j ≤ current query position i.' },
   { id:'term-embedding', kind:'Concept', title:'Embedding', target:'transformer', aliases:['embedding','embeddings','token','representation'], description:'A learned vector associated with an input symbol. It is not a dictionary definition. In the original Transformer, scaled token embeddings are combined with position information.', formula:'input = √d_model · token embedding + position vector' },
   { id:'term-equivariance', kind:'Concept', title:'Translation equivariance', target:'cnn', aliases:['equivariance','equivariant','translation','shift','shifting'], description:'Shifting the input shifts a convolution’s output by the same amount, because one filter is reused at every position. It holds exactly at stride 1 while the responses stay inside the map; larger strides, border effects and pooling break the exact match.', formula:'conv(shift(x)) = shift(conv(x)) at stride 1, away from borders' },
-  { id:'term-scaling', kind:'Concept', title:'Scaled dot product (÷ √dₖ)', target:'attention', aliases:['scaled dot product','scaling','scale','square root','sqrt','dk','saturation'], description:'Every score is divided by the square root of the key dimension. If all query and key components are independent, with mean 0 and variance 1, a dot product has variance dₖ; dividing restores variance 1 and helps keep softmax away from saturated weights.', formula:'score = q · k / √dₖ, where Var(q · k) = dₖ' },
+  { id:'term-scaling', kind:'Concept', title:'Scaled dot product (÷ √dₖ)', target:'attention', aliases:['scaled dot product','scaling','scale','square root','sqrt','dk','q · k','saturation'], description:'Every score is divided by the square root of the key dimension. If all query and key components are independent, with mean 0 and variance 1, a dot product has variance dₖ; dividing restores variance 1 and helps keep softmax away from saturated weights.', formula:'score = q · k / √dₖ, where Var(q · k) = dₖ' },
   { id:'term-multihead', kind:'Concept', title:'Multi-head attention', target:'attention', aliases:['multi head','multihead','multi head attention','heads','head','concatenate'], description:'Several attention functions run in parallel on different learned projections. The base model uses 8 heads of width 64, concatenates their outputs and projects back to 512 coordinates.', formula:'MultiHead = Concat(head₁, …, head₈) Wᴼ' },
   { id:'term-cross-attention', kind:'Concept', title:'Cross-attention', target:'transformer', aliases:['cross attention','encoder decoder attention'], description:'Attention in which the decoder supplies the queries while the encoder output supplies the keys and values, so every target position can read the whole source sequence.', formula:'queries from the decoder; keys and values from the encoder' },
   { id:'term-ffn', kind:'Concept', title:'Position-wise feed-forward network', target:'transformer', aliases:['ffn','feed forward','feedforward','mlp','relu','position wise'], description:'The same two-layer network applied to every position separately. It mixes a token’s features, while attention mixes positions. The base model expands 512 features to 2048 and back.', formula:'FFN(x) = max(0, xW₁ + b₁)W₂ + b₂' },
@@ -34,8 +34,8 @@ const experiments = [
   {chapter:'rnn',number:'02',title:'Separate memory from gradient',steps:'Enter six zeros. Set the memory weight to 0.5, then 1. Reveal every state in each case. Both sequences stay zero; the sensitivities differ.',question:'Can two identical forward states have different derivatives?'},
   {chapter:'attention',number:'03',title:'Separate matching from content',steps:'Select the first query and enable the causal mask. Open the vector editor and change only its first value vector. Watch the output and the weights.',question:'Why can the output change while the attention weights stay fixed?'},
   {chapter:'cnn',number:'04',title:'Shift a pattern, shift the map',steps:'Clear the image and light the centre pixel. Choose the vertical-edge filter, stride 1 and padding 1, and note the responses. Move the pixel one column right. Then repeat both steps at stride 2.',question:'Why does stride 2 change the response pattern instead of shifting it?'},
-  {chapter:'attention',number:'05',title:'Feel the √dₖ scale',steps:'In Experiment 04, start at dₖ = 1, then choose 64 and 512. Watch the raw standard deviation and the slope of the top softmax weight in both panels.',question:'Why does the unscaled slope collapse while the scaled one stays near 0.25?'},
-  {chapter:'transformer',number:'06',title:'Find the fixed rotation',steps:'In Experiment 05, read the rotation matrix for pair 0. Move the slider to several positions and check that the matrix stays the same while the vectors change.',question:'Why can one fixed rotation turn the encoding of any position into the next one?'}
+  {chapter:'attention',number:'05',title:'Feel the √dₖ scale',steps:'In the lab “Experiment 04 / Scale before softmax”, start at dₖ = 1, then choose 64 and 512. Watch the raw standard deviation and the slope of the top softmax weight in both panels.',question:'Why does the unscaled slope collapse while the scaled one stays near 0.25?'},
+  {chapter:'transformer',number:'06',title:'Find the fixed rotation',steps:'In the lab “Experiment 05 / A position signature”, read the rotation matrix for pair 0. Move the slider to several positions and check that the matrix stays the same while the vectors change.',question:'Why can one fixed rotation turn the encoding of any position into the next one?'}
 ];
 const countWords = ['zero','one','two','three','four','five','six','seven','eight','nine','ten'];
 const capitalized = n => { const word = countWords[n] ?? String(n); return word[0].toUpperCase() + word.slice(1); };
@@ -43,22 +43,37 @@ const index = [...chapters,...glossary];
 /** Copies of the authored glossary and guided experiments, for consistency checks. */
 export const learningContent = () => ({ glossary:glossary.map(item=>({...item,aliases:[...item.aliases]})), experiments:experiments.map(item=>({...item})) });
 const normalize = value => value.normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[‐‑‒–—−_-]/g,' ').replace(/[^\p{L}\p{N}\s]/gu,' ').replace(/\s+/g,' ').trim();
+// Sub- and superscripts (kⱼ, dₖ, QKᵀ, σ²). NFKD spells kⱼ "kj", so notation is also indexed without them: "k" finds kⱼ.
+const scripts = /[\u00b2\u00b3\u00b9\u02b0-\u02b8\u02e0-\u02e4\u1d2c-\u1d6a\u1d9b-\u1dbf\u2070-\u209f\u2c7c\u2c7d]+/g;
+// Words a query can do without. Every other word must match anyway, so "Q and K" looks for Q and K and "a filter" for
+// filter. A query of nothing else keeps them.
+const fillers = ['a','an','and'];
 const publicCopy = item => ({ ...item, aliases:[...item.aliases] });
 
 /** Exact words/aliases take precedence over phrase and prefix matches; ties keep authored order. */
 export function searchLearningItems(query) {
   if (typeof query !== 'string') return [];
-  const needle=normalize(query.slice(0,120));
+  // A possessive is not a word of its own: "RNN’s memory" looks for RNN and memory, not for a symbol s. (The letter
+  // before it is captured, not looked behind for: Safari before 16.4 cannot parse a lookbehind, and the page would not load.)
+  const needle=normalize(query.slice(0,120).normalize('NFKD').replace(/([\p{L}\p{M}\p{N}])['’]s(?![\p{L}\p{M}\p{N}])/giu,'$1'));
   // Only a blank box lists the chapters. A typed query that normalizes to nothing (e.g. "???" or "√") matches nothing.
   if (!needle) return query.trim() ? [] : chapters.map(publicCopy);
-  const words=needle.split(' ');
-  return index.map((item,order)=>{
+  const typed=needle.split(' '),content=typed.filter(word=>!fillers.includes(word)),words=content.length?content:typed,phrase=words.join(' ');
+  const rows=index.map((item,order)=>{
     const title=normalize(item.title), aliases=item.aliases.map(normalize);
-    const searchWords=normalize([item.title,...item.aliases,item.description].join(' ')).split(' ');
-    const matches=words.every(word=>searchWords.some(candidate=>candidate===word || (word.length>=3 && candidate.startsWith(word))));
-    const score=aliases.includes(needle)?0:title===needle?1:title.includes(needle)?2:3;
-    return {item,order,matches,score};
-  }).filter(row=>row.matches).sort((a,b)=>a.score-b.score||a.order-b.order).map(row=>publicCopy(row.item));
+    // The notation is the title, aliases and formula. A one-letter query word is a symbol (q, k, s, σ) for the entries
+    // that have it there: in prose a lone letter is a passing "Q and K" or the "s" left by a possessive such as "RNN’s".
+    const notation=[item.title,...item.aliases,item.formula??''].join(' ');
+    const symbols=normalize(`${notation} ${notation.replace(scripts,' ')}`).split(' '),everywhere=[...symbols,...normalize(item.description).split(' ')];
+    const found=word=>everywhere.some(candidate=>candidate===word || (word.length>=3 && candidate.startsWith(word)));
+    const asSymbols=words.every(word=>word.length===1&&/\p{L}/u.test(word)?symbols.includes(word):found(word));
+    const score=aliases.includes(phrase)?0:title===phrase?1:title.includes(phrase)?2:3;
+    return {item,order,asSymbols,asWords:words.every(found),score};
+  });
+  // Entries whose notation has every one-letter word are the answer. Only when there are none ("Q K V": no entry's
+  // notation has all three) is a one-letter word matched like any other, in prose too, instead of reporting 0 matches.
+  const matches=rows.filter(rows.some(row=>row.asSymbols)?row=>row.asSymbols:row=>row.asWords);
+  return matches.sort((a,b)=>a.score-b.score||a.order-b.order).map(row=>publicCopy(row.item));
 }
 
 let counter=0;

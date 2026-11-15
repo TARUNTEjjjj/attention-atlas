@@ -30,6 +30,15 @@ test('load safety: total request budget is enforced before network activity',()=
 test('load manifest: rejects remote URLs, traversal, encoded paths and secret/hidden files',()=>{
   for(const path of ['https://example.com/a.js','//example.com/a.js','../x.js','/a/../x.js','/.env','/.git/config','/x%2ejs','/file.js?token=x','/a\\b.js','/wrangler.toml'])assert.throws(()=>normalizeAssetPaths({assets:[path]}));
 });
+test('load manifest: tab, LF or CR, which the URL parser drops, cannot point a request at another host or path',()=>{
+  for(const path of ['/\t/evil.example/a.js','/\n/evil.example/a.js','/\r/evil.example/a.js','\t//evil.example/a.js','/\t/10.0.0.5/a.js','/assets/\t../\t../x.js','/\t.git/config.json'])assert.throws(()=>normalizeAssetPaths({assets:[path]}),/Manifest/,JSON.stringify(path));
+  // Whatever is accepted is requested exactly as checked, on the allowed origin.
+  for(let code=0;code<128;code++)for(const template of ['/X/evil.example/a.js','X//evil.example/a.js','/assets/X../x.js','/X.git/a.js','/a.jsX']){
+    const raw=template.replace('X',()=>String.fromCharCode(code));let paths;
+    try{paths=normalizeAssetPaths({assets:[raw]});}catch{continue;}
+    for(const path of paths){const url=new URL(path,ALLOWED_ORIGIN);assert.equal(url.origin,ALLOWED_ORIGIN,JSON.stringify(raw));assert.equal(url.pathname,path,JSON.stringify(raw));}
+  }
+});
 test('load manifest: validates shape and limits breadth',()=>{
   for(const x of [null,{},[],{assets:[]},{assets:[{}]}])assert.throws(()=>normalizeAssetPaths(x));
   assert.throws(()=>normalizeAssetPaths({assets:Array.from({length:65},(_,i)=>`/x${i}.js`)}));

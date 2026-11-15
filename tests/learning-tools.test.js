@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFile,readdir} from 'node:fs/promises';
 import {searchLearningItems} from '../src/learning-tools.js';
 
 test('learning search: empty input offers exactly the six chapter routes',()=>{
@@ -62,4 +63,48 @@ test('learning content: glossary IDs are unique and guided experiments point at 
 test('learning search: results always use fixed internal anchors and explanatory prose',()=>{
  const terms=['query','key','value','softmax','convolution','receptive field','hidden state','gradient','residual','layernorm','causal','embedding','scaled dot product','multi head attention','positional encoding','warmup','path length','equivariance'];
  for(const query of terms){const item=searchLearningItems(query)[0];assert.match(item.target,/^(foundations|cnn|rnn|attention|transformer|practice)$/);assert.ok(item.description.length>40);assert.ok(!/[<>]/.test(item.title));}
+});
+test('learning search: notation finds the concepts whose formulas use it, and a one-letter symbol is not matched in prose',()=>{
+ // "q · k" is the scaling lab's RAW SCORES label. Value's prose ("when Q and K stay fixed") used to be its only match.
+ const ids=query=>searchLearningItems(query).map(x=>x.id);
+ for(const query of ['q · k','q·k','Q · K','Q K','Q and K'])assert.deepEqual(ids(query),['term-scaling','term-query','term-key'],query);
+ assert.deepEqual(ids('QKᵀ'),['term-key']);
+ assert.deepEqual(ids('s'),['term-softmax'],'the score sⱼ in the softmax formula, not the "s" left by "RNN’s"');
+ assert.ok(ids('k').includes('term-query'),'kⱼ in the query formula is the symbol k');
+ assert.ok(!ids('Q').includes('term-value'));
+});
+test('learning search: an article or a possessive in the query finds what the query finds without it',()=>{
+ // "a" and the "s" of "RNN's" are one-letter words, and a one-letter word is looked for as a symbol in each entry's
+ // notation. No entry has them there, so each of these said "0 matches. Try a shorter term…".
+ const ids=query=>searchLearningItems(query).map(x=>x.id);
+ for(const [query,plain] of [['a filter','filter'],['a kernel','kernel'],['a hidden state','hidden state'],['A Causal Mask','causal mask'],['an RNN','rnn'],['an embedding','embedding'],
+  ["RNN's memory",'rnn memory'],['RNN’s hidden state','rnn hidden state'],["RNN'S MEMORY",'rnn memory'],["the model's",'the model'],["network's",'network'],['ＲＮＮ＇ｓ memory','rnn memory']]){
+  assert.ok(ids(plain).length>0,plain);
+  assert.deepEqual(ids(query),ids(plain),`${JSON.stringify(query)} should find what ${JSON.stringify(plain)} finds`);
+ }
+ assert.deepEqual(ids('a filter'),['chapter-cnn','term-convolution','term-receptive-field','term-equivariance']);
+ assert.deepEqual(ids("RNN's memory"),['chapter-rnn','term-hidden-state']);
+ assert.equal(ids('a hidden state')[0],'term-hidden-state','the alias is still an exact match once the article is dropped');
+ assert.ok(ids("the model's").includes('term-ffn')&&ids("network's").includes('term-ffn'));
+ // The article and the possessive are dropped, not the symbols beside them.
+ assert.deepEqual(ids("a q · k"),ids('q · k'));
+ assert.deepEqual(ids("Q's"),ids('Q'));
+ assert.deepEqual(ids("'s'"),ids('s'),'a quoted s is the symbol s, not a possessive');
+ // A query of nothing but such words is searched as typed: "an" finds the entries that say "an", not every entry.
+ assert.ok(ids('an').includes('term-hidden-state')&&!ids('an').includes('term-softmax'));
+ assert.ok(ids('and').length>0);
+});
+test('page modules: no regular expression uses a lookbehind, which iPhone Safari before 16.4 cannot parse',async()=>{
+ // (?<=…) or (?<!…) is a syntax error there. The module then fails to load, and app.js and the whole page with it.
+ const src=new URL('../src/',import.meta.url),modules=(await readdir(src)).filter(name=>name.endsWith('.js'));
+ assert.ok(modules.includes('learning-tools.js')&&modules.includes('app.js'));
+ for(const name of modules)assert.doesNotMatch(await readFile(new URL(name,src),'utf8'),/\(\?<[=!]/,`src/${name}`);
+});
+test('learning search: one-letter words that no entry has together as notation are searched as ordinary words',()=>{
+ const ids=query=>searchLearningItems(query).map(x=>x.id);
+ // No entry's notation holds q, k and v, so "Q K V" went from one match to none. Value's description names Q and K.
+ for(const query of ['Q K V','Q, K, V','Q/K/V','k and v'])assert.deepEqual(ids(query),['term-value'],query);
+ // That reading is only for a query the notation cannot answer: it adds nothing to one it can.
+ for(const query of ['q · k','Q K','k'])assert.ok(!ids(query).includes('term-value'),query);
+ assert.deepEqual(ids('q k x'),[],'still nothing when no entry has the words anywhere');
 });

@@ -38,6 +38,10 @@ export function normalizeAssetPaths(manifest) {
     if(typeof raw!=='string'||!raw||raw.includes('\\')||raw.includes('?')||raw.includes('#')||raw.includes('%')||raw.includes(':')||raw.startsWith('//'))throw new Error('Manifest asset paths must be local URL paths.');
     const path=raw.startsWith('/')?raw:`/${raw}`;
     if(path.split('/').some(part=>part==='.'||part==='..')||path.split('/').some(part=>part.startsWith('.')))throw new Error('Manifest traversal and hidden paths are not permitted.');
+    // Check the URL the runner will request, not just the text: the URL parser drops tab, LF and CR and resolves dot
+    // segments, so '/\t/host/a.js' would otherwise become '//host/a.js', a request to another host.
+    const url=new URL(path,ALLOWED_ORIGIN);
+    if(url.origin!==ALLOWED_ORIGIN||url.pathname!==path)throw new Error('Manifest asset paths must be local URL paths.');
     if(path==='/index.html'||path==='/')continue;
     if(path==='/404.html'||path==='/_headers'||path==='/asset-manifest.json')continue;
     if(!/\.(?:html|css|js|mjs|svg|png|jpg|jpeg|webp|ico|woff2?|json|webmanifest)$/.test(path))throw new Error(`Unsupported asset path: ${path}`);

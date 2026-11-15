@@ -21,9 +21,14 @@ export function normalizeProgress(value, quiz = []) {
   }
   return {completed, answers};
 }
+/** The stored value as saved, before normalization; available is false when it cannot be read or parsed. */
+function readStored(storage) {
+  try { return {value:JSON.parse(storage.getItem(STORAGE_KEY)), available:true}; }
+  catch { return {value:null, available:false}; }
+}
 export function loadProgress(storage, quiz) {
-  try { return {data:normalizeProgress(JSON.parse(storage.getItem(STORAGE_KEY)), quiz), available:true}; }
-  catch { return {data:normalizeProgress(null), available:false}; }
+  const {value, available} = readStored(storage);
+  return {data:normalizeProgress(value, quiz), available};
 }
 export function saveProgress(storage, progress) {
   try { storage.setItem(STORAGE_KEY, JSON.stringify(progress)); return true; } catch { return false; }
@@ -43,23 +48,37 @@ export function mergeProgress(current,incoming,quiz=[]) {
   return {completed:[...new Set([...local.completed,...imported.completed])],answers};
 }
 
+/** A copy of the stored record to write back, so the entries this release does not know (answers, chapters or fields
+ * added by a newer release open in another tab) are kept. */
+function storedRecord(value) {
+  const record = value && typeof value === 'object' && !Array.isArray(value) ? {...value} : {};
+  record.completed = Array.isArray(record.completed) ? [...record.completed] : [];
+  record.answers = record.answers && typeof record.answers === 'object' && !Array.isArray(record.answers) ? {...record.answers} : {};
+  return record;
+}
+
 /** Apply only this tab's changes to the latest stored snapshot. A stale tab must
- * not restore chapter marks or answers that another tab deliberately removed. */
-export function commitProgress(storage, previous, next, quiz = [], { reset = false, preserveCorrect = false, imported } = {}) {
+ * not restore chapter marks or answers that another tab deliberately removed.
+ * `changed` names the chapters and question ids this tab set since its last successful save, less those another tab has
+ * changed since. They are applied even when `previous` already held the same value: after a failed save, another tab may
+ * have undone it before the learner set it again here. Everything else in storage, including entries this release does
+ * not know, is kept as stored. */
+export function commitProgress(storage, previous, next, quiz = [], { reset = false, preserveCorrect = false, imported, changed = {} } = {}) {
   const before = normalizeProgress(previous, quiz), desired = normalizeProgress(next, quiz);
+  const setHere = {completed:new Set(changed?.completed), answers:new Set(changed?.answers)};
   try {
-    const loaded = loadProgress(storage, quiz);
+    const loaded = readStored(storage);
     if (!reset && !loaded.available) return { data: desired, available: false };
-    const data = reset ? desired : normalizeProgress(loaded.data, quiz);
+    const data = reset ? desired : storedRecord(loaded.value);
     if (!reset) {
       for (const chapter of CHAPTERS) {
-        if (before.completed.includes(chapter) === desired.completed.includes(chapter)) continue;
+        if (before.completed.includes(chapter) === desired.completed.includes(chapter) && !setHere.completed.has(chapter)) continue;
         data.completed = desired.completed.includes(chapter)
           ? [...new Set([...data.completed, chapter])]
           : data.completed.filter(id => id !== chapter);
       }
       for (const q of quiz) {
-        if (before.answers[q.id] === desired.answers[q.id]) continue;
+        if (before.answers[q.id] === desired.answers[q.id] && !setHere.answers.has(q.id)) continue;
         if (preserveCorrect && data.answers[q.id] === q.answer) continue;
         if (desired.answers[q.id] === undefined) delete data.answers[q.id];
         else data.answers[q.id] = desired.answers[q.id];
@@ -76,7 +95,7 @@ export function commitProgress(storage, previous, next, quiz = [], { reset = fal
       }
     }
     if (!saveProgress(storage, data)) return { data: desired, available: false };
-    return { data, available: true };
+    return { data: normalizeProgress(data, quiz), available: true };
   } catch { return { data: desired, available: false }; }
 }
 

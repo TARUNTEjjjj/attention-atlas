@@ -26,7 +26,7 @@ export function mountScaling(element) {
       <p class="note scaling-intro">Each sample is one query and one key whose components are all independent, with mean 0 and variance 1: the illustrative assumption in the paper’s footnote on scaling. Trained vectors need not look like this. The same 2,000 pairs are drawn for every learner, so you can check the numbers.</p>
       <div class="lab-toolbar">
         <label class="control scaling-control" for="${id}-dimensions">Query and key dimension dₖ
-          <select id="${id}-dimensions">${choices.map(d => `<option value="${d}"${d === 64 ? ' selected' : ''}>${d}${d === 64 ? ' · one head of the base model' : d === 512 ? ' · d_model of the base model' : ''}</option>`).join('')}</select>
+          <select id="${id}-dimensions">${choices.map(d => `<option value="${d}"${d === 64 ? ' selected' : ''}>${d}${d === 64 ? ' · base-model head' : d === 512 ? ' · base d_model' : ''}</option>`).join('')}</select>
         </label>
       </div>
       <div class="complexity-results scaling-results" aria-live="polite"></div>

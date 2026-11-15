@@ -1,4 +1,4 @@
-# Measured capacity workload — Attention Atlas 1.1
+# Measured capacity workload — Attention Atlas release 9369f6aceda5b33c
 
 Public target: https://attention-atlas.pages.dev/
 
