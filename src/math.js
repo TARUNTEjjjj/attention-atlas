@@ -164,3 +164,25 @@ export function positionalEncoding(position, dimensions = 8) {
     return index % 2 === 0 ? Math.sin(angle) : Math.cos(angle);
   });
 }
+
+/**
+ * The paper's relative-offset property for one sine/cosine pair i:
+ * [PE(p + k, 2i), PE(p + k, 2i + 1)] = R(k·ω) [PE(p, 2i), PE(p, 2i + 1)], with ω = 1 / 10000^(2i/d).
+ * The rotation R depends on the offset k and the pair's frequency, never on the position p.
+ */
+export function positionOffsetRotation(position, offset, pair = 0, dimensions = 8) {
+  integer(position, 'Position', 0);
+  integer(offset, 'Offset', 0);
+  integer(pair, 'Pair', 0);
+  integer(dimensions, 'Dimensions', 2);
+  if (2 * pair + 1 >= dimensions) throw new RangeError('Pair must index a complete sine/cosine pair.');
+  integer(position + offset, 'Target position', 0);
+  const frequency = 1 / (10000 ** (2 * pair / dimensions));
+  const angle = offset * frequency;
+  const cosine = Math.cos(angle), sine = Math.sin(angle);
+  const from = positionalEncoding(position, dimensions).slice(2 * pair, 2 * pair + 2);
+  const target = positionalEncoding(position + offset, dimensions).slice(2 * pair, 2 * pair + 2);
+  const matrix = [[cosine, sine], [-sine, cosine]];
+  const rotated = [cosine * from[0] + sine * from[1], -sine * from[0] + cosine * from[1]];
+  return {frequency, wavelength: 2 * Math.PI / frequency, angle, matrix, from, rotated, target};
+}

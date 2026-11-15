@@ -1,10 +1,53 @@
-import { scoreBudget, layerNorm } from './advanced-math.js';
+import { scoreBudget, layerNorm, dotProductSpread, softmaxSaturation } from './advanced-math.js';
 let instance = 0;
 const number = new Intl.NumberFormat('en-US');
 const fmt = (value, digits = 4) => Math.abs(value) < 0.5 * 10 ** -digits ? '0' : Number(value.toFixed(digits)).toString();
 const vector = values => `[${values.map(value => fmt(value)).join(', ')}]`;
 const memory = budget => budget.gibibytes >= 1 ? `${fmt(budget.gibibytes, 2)} GiB` : budget.mebibytes >= 1 ? `${fmt(budget.mebibytes, 2)} MiB` : budget.bytes >= 1024 ? `${fmt(budget.bytes / 1024, 2)} KiB` : `${budget.bytes} bytes`;
 const topbar = (title, badge) => `<div class="lab-topbar"><span class="eyebrow">${title}</span><span class="pill">${badge}</span></div>`;
+const superscript = exponent => String(exponent).replace(/[-0-9]/g, c => '⁻⁰¹²³⁴⁵⁶⁷⁸⁹'['-0123456789'.indexOf(c)]);
+/** Four decimals for ordinary weights; scientific notation once a value would round away. */
+const small = value => {
+  if (value === 0 || value >= 0.001) return value.toFixed(4);
+  const [mantissa, exponent] = value.toExponential(2).split('e');
+  return `${mantissa} × 10${superscript(Number(exponent))}`;
+};
+
+/** Why the paper divides by √dₖ: a fixed random sample, then an exact softmax comparison. */
+export function mountScaling(element) {
+  const id = `scaling-${++instance}`;
+  const abort = new AbortController();
+  const listen = (target, event, handler) => target.addEventListener(event, handler, { signal: abort.signal });
+  const choices = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512];
+  const samples = new Map();
+  let dimensions = 64;
+  element.innerHTML = `${topbar('EXPERIMENT 04 / SCALE BEFORE SOFTMAX', 'Fixed random sample · seed 2017')}
+    <div class="lab-body">
+      <p class="note scaling-intro">Each sample is one query and one key whose components are all independent, with mean 0 and variance 1: the illustrative assumption in the paper’s footnote on scaling. Trained vectors need not look like this. The same 2,000 pairs are drawn for every learner, so you can check the numbers.</p>
+      <div class="lab-toolbar">
+        <label class="control scaling-control" for="${id}-dimensions">Query and key dimension dₖ
+          <select id="${id}-dimensions">${choices.map(d => `<option value="${d}"${d === 64 ? ' selected' : ''}>${d}${d === 64 ? ' · one head of the base model' : d === 512 ? ' · d_model of the base model' : ''}</option>`).join('')}</select>
+        </label>
+      </div>
+      <div class="complexity-results scaling-results" aria-live="polite"></div>
+      <div class="scaling-compare"></div>
+      <details><summary>What this shows, and what it does not</summary><p class="note">If all the components are independent with mean 0 and variance 1, each product qᵢkᵢ has variance 1 and the dₖ products are independent of one another, so the sum q · k has variance dₖ. Its typical size grows like √dₖ, and dividing by √dₖ restores variance 1. The sample estimates wobble by a few percent around that theory.</p><p class="note">The comparison below gives one key a score one standard deviation (√dₖ) above three others. For large dₖ, such as the default 64, softmax without scaling gives that key almost all the weight, and the slope p(1 − p) of its weight with respect to its own score collapses. At dₖ = 1 the two panels coincide. The paper says the authors suspect this effect, extremely small softmax gradients, explains why unscaled dot products did worse than additive attention at large dₖ. This lab checks the arithmetic; it does not train a model, and a full training gradient includes the loss and many other terms.</p></details>
+    </div>`;
+  const get = selector => element.querySelector(selector);
+  const spread = d => { if (!samples.has(d)) samples.set(d, dotProductSpread({ dimensions: d })); return samples.get(d); };
+  const bars = (label, result) => `<div class="scaling-panel"><span class="eyebrow">${label}</span><div class="formula">scores = ${vector(result.scores)}</div><div class="scores">${result.weights.map((w, i) => `<div class="score-row"><span>key ${i + 1}</span><div class="score-track"><div class="score-bar" style="width:${(100 * w).toFixed(2)}%"></div></div><span>${small(w)}</span></div>`).join('')}</div><p class="note">Top weight p ≈ ${small(result.weights[0])} · slope p(1 − p) ≈ <strong>${small(result.slope)}</strong></p></div>`;
+  function render() {
+    const s = spread(dimensions), saturation = softmaxSaturation(dimensions);
+    get('.scaling-results').innerHTML = `
+      <div class="complexity-metric"><span class="eyebrow">RAW SCORES <span class="math-case">q · k</span></span><strong>σ ≈ ${fmt(s.std, 2)}</strong><span>sample variance ≈ ${fmt(s.variance, 2)} · theory dₖ = ${dimensions}</span></div>
+      <div class="complexity-metric"><span class="eyebrow">AFTER ÷ <span class="math-case">√dₖ</span></span><strong>σ ≈ ${fmt(s.scaledStd, 2)}</strong><span>sample variance ≈ ${fmt(s.scaledVariance, 3)} · theory 1</span></div>
+      <div class="formula">Var(q · k) = Σᵢ Var(qᵢkᵢ) = ${dimensions} × 1 = ${dimensions} → σ = √${dimensions} ≈ ${fmt(Math.sqrt(dimensions), 3)}<br>Largest |q · k| in this sample ≈ ${fmt(s.maxAbs, 1)}; after scaling ≈ ${fmt(s.scaledMaxAbs, 2)}</div>`;
+    get('.scaling-compare').innerHTML = bars(`WITHOUT SCALING · GAP √${dimensions} ≈ ${fmt(saturation.gap, 2)}`, saturation.unscaled) + bars('WITH ÷ <span class="math-case">√dₖ</span> · GAP 1', saturation.scaled);
+  }
+  listen(get(`#${id}-dimensions`), 'change', () => { dimensions = Number(get(`#${id}-dimensions`).value); render(); });
+  render();
+  return () => abort.abort();
+}
 
 /** Counts the score tensor arithmetically; never allocates the displayed matrix. */
 export function mountComplexity(element) {
@@ -12,7 +55,7 @@ export function mountComplexity(element) {
   const abort = new AbortController();
   const listen = (target, event, handler) => target.addEventListener(event, handler, { signal: abort.signal });
   let tokens = 1024, heads = 8, bytesPerElement = 2;
-  element.innerHTML = `${topbar('EXPERIMENT 06 / THE COST OF CONTEXT', 'An estimate, not an allocation')}
+  element.innerHTML = `${topbar('EXPERIMENT 07 / THE COST OF CONTEXT', 'An estimate, not an allocation')}
     <div class="lab-body">
       <div class="lab-toolbar complexity-controls">
         <label class="control" for="${id}-tokens">Sequence length n
@@ -67,7 +110,7 @@ export function mountNormalization(element) {
   const listen = (target, event, handler) => target.addEventListener(event, handler, { signal: abort.signal });
   const defaults = { x: [1, 2, 3, 4], sublayer: [0.5, -0.5, 1, -1] };
   let x = defaults.x.slice(), sublayer = defaults.sublayer.slice(), epsilon = 1e-5, gamma = 1, beta = 0;
-  element.innerHTML = `${topbar('EXPERIMENT 05 / ADD, THEN NORMALIZE', 'One position · four features')}
+  element.innerHTML = `${topbar('EXPERIMENT 06 / ADD, THEN NORMALIZE', 'One position · four features')}
     <div class="lab-body">
       <p class="note">A residual connection adds a sublayer’s result to its input. In the original Transformer, LayerNorm then acts across the feature coordinates of each position. Edit both vectors and trace every step.</p>
       <div class="normalization-inputs">
@@ -92,7 +135,7 @@ export function mountNormalization(element) {
     const denominator = Math.sqrt(result.variance + epsilon);
     get(`#${id}-gamma-value`).textContent = fmt(gamma, 1);
     get(`#${id}-beta-value`).textContent = fmt(beta, 1);
-    get('.normalization-working').innerHTML = `<div class="normalization-steps"><div><span class="eyebrow">01 / ADD</span><div class="formula">r = x + s<br>= ${vector(residual)}</div></div><div><span class="eyebrow">02 / MEASURE</span><div class="formula">μ ≈ ${fmt(result.mean)}<br>σ² ≈ ${fmt(result.variance)}</div></div><div><span class="eyebrow">03 / NORMALIZE</span><div class="formula">z = (r − μ) / √(σ² + ε)<br>denominator ≈ ${fmt(denominator)}</div></div></div><div class="normalization-output"><span class="eyebrow">FINAL OUTPUT · γz + β</span><strong>${vector(result.output)}</strong></div>`;
+    get('.normalization-working').innerHTML = `<div class="normalization-steps"><div><span class="eyebrow">01 / ADD</span><div class="formula">r = x + s<br>= ${vector(residual)}</div></div><div><span class="eyebrow">02 / MEASURE</span><div class="formula">μ ≈ ${fmt(result.mean)}<br>σ² ≈ ${fmt(result.variance)}</div></div><div><span class="eyebrow">03 / NORMALIZE</span><div class="formula">z = (r − μ) / √(σ² + ε)<br>denominator ≈ ${fmt(denominator)}</div></div></div><div class="normalization-output"><span class="eyebrow">FINAL OUTPUT · <span class="math-case">γz + β</span></span><strong>${vector(result.output)}</strong></div>`;
     get('.normalization-table tbody').innerHTML = residual.map((value, i) => `<tr><th scope="row">${i + 1}</th><td>${fmt(value)}</td><td>${fmt(value - result.mean)}</td><td>${fmt(result.normalized[i])}</td><td>${fmt(result.output[i])}</td></tr>`).join('');
   }
   function readVectors() {

@@ -1,16 +1,20 @@
 {
   "name": "attention-atlas",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "description": "An interactive field guide to CNNs, RNNs and the original Transformer.",
   "scripts": {
     "test": "node --test tests/*.test.js",
     "build": "npm test && node scripts/build.mjs",
-    "dev": "python3 -m http.server 8791",
+    "dev": "python3 -m http.server 8791 --bind 127.0.0.1",
     "deploy": "npm run build && wrangler pages deploy dist --project-name attention-atlas --branch main",
     "check:live": "node scripts/check-live.mjs",
-    "test:load": "node scripts/load-test.mjs"
+    "test:load": "node scripts/load-test.mjs",
+    "test:resources:ui": "node --test scripts/resource-*.test.mjs",
+    "resources:refresh": "node scripts/resources/resource-server.mjs refresh --config resources/sources.json --output resources/catalog.json",
+    "resources:serve": "node scripts/resources/resource-server.mjs serve --config resources/sources.json --snapshot resources/catalog.json",
+    "test:resources": "node --test scripts/resources/resource-catalog.test.mjs && node scripts/resources/check-catalog.mjs"
   },
   "engines": {
     "node": ">=22"
