@@ -43,9 +43,10 @@ export function mountAttention(root){
   for(const selector of ['#attention-head','#causal','#scaled'])$(root,selector).addEventListener('change',render);
   $(root,'#temperature').addEventListener('input',render);
   root.querySelectorAll('[data-matrix]').forEach(input=>input.addEventListener('input',()=>{
-    const inputs=[...root.querySelectorAll('[data-matrix]')],bad=inputs.find(el=>el.value.trim()===''||!Number.isFinite(Number(el.value))||Math.abs(Number(el.value))>5);
-    for(const el of inputs)el.setAttribute('aria-invalid',el===bad?'true':'false');
-    if(bad){$(root,'#matrix-error').textContent='Enter a number between −5 and 5 in every coordinate. The last valid calculation is still shown.';return;}
+    // Flag every invalid coordinate, so assistive technology does not report a second bad one as valid.
+    const inputs=[...root.querySelectorAll('[data-matrix]')],bad=inputs.filter(el=>el.value.trim()===''||!Number.isFinite(Number(el.value))||Math.abs(Number(el.value))>5);
+    for(const el of inputs)el.setAttribute('aria-invalid',String(bad.includes(el)));
+    if(bad.length){$(root,'#matrix-error').textContent='Enter a number between −5 and 5 in every coordinate. The last valid calculation is still shown.';return;}
     $(root,'#matrix-error').textContent='';for(const el of inputs)matrices[el.dataset.matrix][Number(el.dataset.i)][Number(el.dataset.j)]=Number(el.value);render();
   }));
   $(root,'#reset-matrices').addEventListener('click',()=>{matrices=structuredClone(defaults);root.querySelectorAll('[data-matrix]').forEach(el=>{el.value=matrices[el.dataset.matrix][Number(el.dataset.i)][Number(el.dataset.j)];el.removeAttribute('aria-invalid');});$(root,'#matrix-error').textContent='';render();});render();

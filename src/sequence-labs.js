@@ -1,7 +1,11 @@
 import { rnnSequence, positionalEncoding, positionOffsetRotation } from './math.js';
 
 let instance = 0;
-const format = (value, digits = 4) => Math.abs(value) < 1e-6 ? (0).toFixed(digits) : value.toFixed(digits);
+/** Fixed decimals. A value that rounds to zero prints as 0.0000: toFixed would keep a negative value's sign (-0.0000). */
+const format = (value, digits = 4) => {
+  const text = value.toFixed(digits);
+  return Number(text) === 0 ? (0).toFixed(digits) : text;
+};
 const svgNS = 'http://www.w3.org/2000/svg';
 const makeSVG = (tag, attributes = {}) => {
   const element = document.createElementNS(svgNS, tag);
@@ -23,7 +27,7 @@ export function mountRNN(element) {
   element.innerHTML = `
     <div class="lab-toolbar sequence-controls">
       <label class="control sequence-input" for="${id}-inputs">Input sequence
-        <input id="${id}-inputs" type="text" inputmode="decimal" value="1, 0.5, -1, 0.8" spellcheck="false" aria-describedby="${id}-hint ${id}-error">
+        <input id="${id}-inputs" type="text" value="1, 0.5, -1, 0.8" spellcheck="false" aria-describedby="${id}-hint ${id}-error">
         <small id="${id}-hint">1–10 numbers, each between −5 and 5, separated by commas.</small>
       </label>
       <label class="control" for="${id}-wx">Input weight wₓ <output class="range-value" id="${id}-wx-value">0.8</output>
@@ -82,13 +86,17 @@ export function mountRNN(element) {
     const state = states[selected];
     const products = states.slice(0, selected + 1).map((entry) => format(entry.localDerivative, 3)).join(' × ');
     const gradient = Math.abs(state.gradientToInitial);
-    const explanation = gradient < 0.1
-      ? 'A small change to the initial state barely affects this state. The sensitivity has shrunk.'
-      : gradient > 1
-        ? 'A small change to the initial state is amplified at this step.'
-        : gradient === 1
-          ? 'The derivative magnitude is one: an infinitesimal change to the initial state keeps its size at this step.'
-          : 'Some sensitivity to the initial state remains, but the derivative magnitude is below one.';
+    // Inputs within ±5 and weights within ±2 keep |h| < 1, and at most ten factors cannot underflow,
+    // so the derivative is exactly zero only when wₕ = 0.
+    const explanation = gradient === 0
+      ? 'The derivative is exactly zero: a change to the initial state does not affect this state at all. With wₕ = 0, no step carries the previous state forward.'
+      : gradient < 0.1
+        ? 'A small change to the initial state barely affects this state. The sensitivity has shrunk.'
+        : gradient > 1
+          ? 'A small change to the initial state is amplified at this step.'
+          : gradient === 1
+            ? 'The derivative magnitude is one: an infinitesimal change to the initial state keeps its size at this step.'
+            : 'Some sensitivity to the initial state remains, but the derivative magnitude is below one.';
     working.innerHTML = `
       <div class="formula rnn-equation"><span class="eyebrow">Step ${selected + 1} · forward calculation</span>
         <p>h<sub>${selected + 1}</sub> ≈ tanh(${wx.toFixed(1)} × ${state.input} + ${wh.toFixed(1)} × ${format(state.previous)})</p>
@@ -127,16 +135,19 @@ export function mountRNN(element) {
     get(`#${id}-wh-value`).textContent = wh.toFixed(1);
     render();
   });
-  listen(get('[data-action="step"]'), 'click', () => {
-    revealed = Math.min(revealed + 1, inputs.length);
-    selected = revealed - 1;
+  // Revealing the last step disables the button that was pressed. Hand keyboard focus to the state it revealed
+  // instead of letting it fall back to the page; focus() also scrolls that state into view in the strip.
+  const reveal = (button, count) => {
+    const hadFocus = document.activeElement === button;
+    revealed = count;
+    selected = count - 1;
     render();
-  });
-  listen(get('[data-action="all"]'), 'click', () => {
-    revealed = inputs.length;
-    selected = inputs.length - 1;
-    render();
-  });
+    if (hadFocus && button.disabled) strip.querySelector(`button[data-index="${selected}"]`).focus();
+  };
+  const stepButton = get('[data-action="step"]');
+  const allButton = get('[data-action="all"]');
+  listen(stepButton, 'click', () => reveal(stepButton, Math.min(revealed + 1, inputs.length)));
+  listen(allButton, 'click', () => reveal(allButton, inputs.length));
   listen(get('[data-action="reset"]'), 'click', () => {
     revealed = 0;
     selected = 0;
