@@ -107,8 +107,11 @@ export function layerNorm(values, { epsilon = 1e-5, gamma = 1, beta = 0 } = {}) 
   const reference = values[0];
   const differences = values.map(value => value - reference);
   if (differences.some(value => !Number.isFinite(value))) throw new RangeError('Feature differences exceed the numeric range.');
-  const mean = reference + sum(differences.map(value => value / values.length));
-  const centered = values.map(value => value - mean);
+  const meanDifference = sum(differences.map(value => value / values.length));
+  const mean = reference + meanDifference;
+  // Keep centering in the reference frame. Adding a large reference can round
+  // the mean before subtraction, inventing variance and a nonzero output mean.
+  const centered = differences.map(value => value - meanDifference);
   const variance = sum(centered.map(value => (value / values.length) * value));
   const denominator = Math.sqrt(variance + epsilon);
   if (![mean, variance, denominator].every(Number.isFinite) || denominator <= 0) throw new RangeError('LayerNorm exceeded the finite numeric range.');
