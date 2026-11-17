@@ -103,6 +103,15 @@ test('LayerNorm: positive scaling is approximately invariant when variance domin
   const b = layerNorm([-20, -10, 10, 20]);
   a.normalized.forEach((value, i) => close(value, b.normalized[i], 3e-6));
 });
+test('LayerNorm: a rounded large mean does not erase centered differences', () => {
+  for (const values of [[0, 2], [0, 2, 2]]) {
+    const ordinary = layerNorm(values);
+    const shifted = layerNorm(values.map(value => 1e16 + value));
+    assert.equal(shifted.variance, ordinary.variance);
+    assert.deepEqual(shifted.normalized, ordinary.normalized);
+    close(shifted.normalized.reduce((total, value) => total + value, 0), 0);
+  }
+});
 test('LayerNorm: epsilon means normalized variance is below one', () => {
   const { normalized, variance } = layerNorm([1, 2, 3, 4], { epsilon: .25 });
   close(normalized.reduce((s, v) => s + v * v, 0) / normalized.length, variance / (variance + .25));
