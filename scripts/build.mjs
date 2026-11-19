@@ -5,6 +5,8 @@ import {createHash} from 'node:crypto';
 import {readAppRelease,stampAppVersion,writeAppVersion} from './app-release.mjs';
 import {stageResourceExplorer,readResourceExplorerInputs,stageRootOfflineWorker,publicResourceFiles} from './stage-resource-explorer.mjs';
 const projectRoot=resolve(dirname(fileURLToPath(import.meta.url)),'..');
+// Semantic version, with optional pre-release and build metadata. Nothing else can reach a manifest or a report.
+export const validApplicationVersion=version=>typeof version==='string'&&/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(version)&&version.length<=64;
 const digest=data=>createHash('sha256').update(data).digest('hex');
 async function list(dir){const result=[];for(const e of (await readdir(dir,{withFileTypes:true})).sort((a,b)=>a.name.localeCompare(b.name))){const p=resolve(dir,e.name);result.push(...e.isDirectory()?await list(p):[p]);}return result;}
 // What the pages load, and nothing else: the stylesheets, icon and scripts the two pages link (the references the build
@@ -45,6 +47,10 @@ export async function buildSite({root=projectRoot,outDir=resolve(root,'dist')}={
   try{const entry=await lstat(ancestor);if(entry.isSymbolicLink())throw new Error('Build directory cannot contain symbolic links');if(!entry.isDirectory())throw new Error('Build directory cannot replace an existing file');}
   catch(error){if(error.code!=='ENOENT')throw error;}
  }
+ // The human-readable application version (package.json "version") travels with the release in the public manifest, so a
+ // workload report can say which version it measured. It names the release; it is not part of the release ID.
+ const applicationVersion=JSON.parse(await readFile(resolve(root,'package.json'),'utf8')).version;
+ if(!validApplicationVersion(applicationVersion))throw new Error('package.json must give a version such as 1.2.0');
  const sourcePaths=await pageSources(root);
  const sources=await Promise.all(sourcePaths.map(async path=>({path,data:await readFile(resolve(root,path))})));
  // The app version covers the same files, named one by one, so a stray file in src/ or resources/ cannot change it. From
@@ -69,11 +75,11 @@ export async function buildSite({root=projectRoot,outDir=resolve(root,'dist')}={
  await stageResourceExplorer(root,resolve(outDir,'resources'),{release:appRelease});
  await stageRootOfflineWorker(root,outDir,{release:appRelease});
  await writeAppVersion(outDir,appRelease,{workers:[{scope:'/',script:'/offline-resources-worker.js'},{scope:'/resources/',script:'/resources/offline-worker.js'}]});
- const manifest={version:1,release,assets};
+ const manifest={version:1,release,applicationVersion,assets};
  await writeFile(resolve(outDir,'asset-manifest.json'),JSON.stringify(manifest,null,2)+'\n');
  const all=await list(outDir);const bytes=(await Promise.all(all.map(p=>stat(p)))).reduce((sum,s)=>sum+s.size,0);
  if(bytes>350000)throw new Error(`Static build exceeds 350 KB performance budget: ${bytes} bytes`);
- console.log(`Built release ${release}: ${assets.length} immutable assets; ${bytes} bytes total. All lab calculations run on the learner's device.`);
- return {release,assets,bytes};
+ console.log(`Built release ${release} (version ${applicationVersion}): ${assets.length} immutable assets; ${bytes} bytes total. All lab calculations run on the learner's device.`);
+ return {release,applicationVersion,assets,bytes};
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url))await buildSite();

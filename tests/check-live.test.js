@@ -15,7 +15,7 @@ async function site(t){
  const dir=await mkdtemp(resolve(tmpdir(),'atlas-live-'));t.after(()=>rm(dir,{recursive:true,force:true}));
  for(const folder of ['src','resources','scripts'])await mkdir(resolve(dir,folder));
  for(const entry of await readdir(resolve(root,'src'),{withFileTypes:true}))if(entry.isFile())await copyFile(resolve(root,'src',entry.name),resolve(dir,'src',entry.name));
- for(const name of ['index.html','404.html','_headers','styles.css','favicon.svg','offline-resources-worker.js',...publicResourceFiles.map(file=>`resources/${file}`),
+ for(const name of ['package.json','index.html','404.html','_headers','styles.css','favicon.svg','offline-resources-worker.js',...publicResourceFiles.map(file=>`resources/${file}`),
   'scripts/build.mjs','scripts/app-release.mjs','scripts/app-update-protocol.mjs','scripts/stage-resource-explorer.mjs','scripts/check-live.mjs'])await copyFile(resolve(root,name),resolve(dir,name));
  const {release}=await buildSite({root:dir});
  return {dir,dist:resolve(dir,'dist'),release};

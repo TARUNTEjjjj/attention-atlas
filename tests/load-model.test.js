@@ -102,13 +102,13 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {spawnSync} from 'node:child_process';
-async function fixtureRun(status) {
+async function fixtureRun(status,manifest={version:1,release:'fixture123',applicationVersion:'1.2.0',assets:[]}) {
   const dir=await mkdtemp(join(tmpdir(),'atlas-load-fixture-'));
   try {
     await mkdir(join(dir,'scripts'));await mkdir(join(dir,'dist'));
     for(const file of ['load-test.mjs','load-model.mjs'])await writeFile(join(dir,'scripts',file),await readFile(new URL(`../scripts/${file}`,import.meta.url)));
     await writeFile(join(dir,'dist','index.html'),'<!doctype html><title>Attention Atlas test fixture</title>');
-    await writeFile(join(dir,'dist','asset-manifest.json'),JSON.stringify({version:1,release:'fixture123',assets:[]}));
+    await writeFile(join(dir,'dist','asset-manifest.json'),JSON.stringify(manifest));
     const output=join(dir,'report.json');
     const code=`
       import https from 'node:https';
@@ -141,8 +141,14 @@ test('load executable: gzip body validation, release provenance and report work 
   assert.equal(result.status,0,result.stderr);assert.equal(result.report.outcome,'completed');
   assert.equal(result.report.http.successful,1);assert.equal(result.report.http.peakInflight,1);assert.equal(result.report.http.encodingCounts.gzip,1);
   assert.equal(result.report.sessions.completedScenarioSessions,1);assert.equal(result.report.sessions.loadLatency.samples,1);
-  assert.equal(result.report.buildSnapshot.release,'fixture123');assert.equal(result.report.buildSnapshot.manifestSha256.length,64);
+  assert.equal(result.report.buildSnapshot.release,'fixture123');assert.equal(result.report.buildSnapshot.applicationVersion,'1.2.0');assert.equal(result.report.buildSnapshot.manifestSha256.length,64);
   assert.equal(result.report.topology.realBrowsers,0);assert.match(result.stdout,/"event":"finished"/);
+});
+test('load executable: a manifest from a build before application versions were recorded leaves the version null, not guessed',async()=>{
+  const result=await fixtureRun(200,{version:1,release:'fixture123',assets:[]});
+  assert.equal(result.status,0,result.stderr);
+  assert.equal(result.report.buildSnapshot.release,'fixture123');
+  assert.equal(result.report.buildSnapshot.applicationVersion,null);
 });
 test('load executable: denial stops and records a failure without any retry',async()=>{
   const result=await fixtureRun(403);
