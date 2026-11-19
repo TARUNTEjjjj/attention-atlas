@@ -17,7 +17,7 @@ async function project(t){
  for(const entry of await readdir(resolve(root,'src'),{withFileTypes:true}))if(entry.isFile())await copyFile(resolve(root,'src',entry.name),resolve(dir,'src',entry.name));
  // Besides the pages and src/: the resource library's public files, the root offline worker, and the build scripts
  // whose bytes are part of the app version.
- for(const name of ['index.html','404.html','_headers','styles.css','favicon.svg','offline-resources-worker.js',...publicResourceFiles.map(file=>`resources/${file}`),
+ for(const name of ['package.json','index.html','404.html','_headers','styles.css','favicon.svg','offline-resources-worker.js',...publicResourceFiles.map(file=>`resources/${file}`),
   'scripts/build.mjs','scripts/app-release.mjs','scripts/app-update-protocol.mjs','scripts/stage-resource-explorer.mjs'])await copyFile(resolve(root,name),resolve(dir,name));
  return dir;
 }
@@ -28,6 +28,9 @@ test('release build: hashed assets resolve every page and module dependency; bui
  const manifest=JSON.parse(await readFile(resolve(outDir,'asset-manifest.json'),'utf8'));
  assert.ok(first.bytes<350000);assert.match(first.release,/^[a-f0-9]{16}$/);
  assert.equal(first.release,manifest.release);
+ // The human-readable application version comes from package.json and is recorded beside the release.
+ assert.equal(manifest.applicationVersion,JSON.parse(await readFile(resolve(root,'package.json'),'utf8')).version);
+ assert.equal(first.applicationVersion,manifest.applicationVersion);
  const appVersion=JSON.parse(await readFile(resolve(outDir,'app-version.json'),'utf8'));
  assert.match(html,new RegExp(appVersion.version));
  assert.match(await readFile(resolve(outDir,'offline-resources-worker.js'),'utf8'),new RegExp(appVersion.version));
@@ -137,6 +140,19 @@ test('release build: both pages carry the release ID, and a page without </head>
  await assert.rejects(buildSite({root:dir}),/App HTML has no head/);
  // The build stopped at that page: no 404.html without the release ID was written.
  await assert.rejects(readFile(resolve(dir,'dist','404.html')),{code:'ENOENT'});
+});
+test('release build: the application version is recorded beside the release without changing it; a missing or malformed version stops the build',async t=>{
+ const dir=await project(t);
+ const before=await buildSite({root:dir});
+ const pkg=JSON.parse(await readFile(resolve(dir,'package.json'),'utf8'));
+ await writeFile(resolve(dir,'package.json'),JSON.stringify({...pkg,version:'9.8.7-rc.1'}));
+ const after=await buildSite({root:dir});
+ assert.equal(after.release,before.release,'the version names a release; it does not change which files it is');
+ assert.equal(JSON.parse(await readFile(resolve(dir,'dist','asset-manifest.json'),'utf8')).applicationVersion,'9.8.7-rc.1');
+ for(const version of [undefined,'latest','1.2','1.2.0 | x']){
+  await writeFile(resolve(dir,'package.json'),JSON.stringify({...pkg,version}));
+  await assert.rejects(buildSite({root:dir}),/package\.json must give a version/);
+ }
 });
 test('headers: immutable cache is limited to release-named assets; HTML is revalidated',async()=>{
  const headers=await readFile(resolve(root,'_headers'),'utf8');
