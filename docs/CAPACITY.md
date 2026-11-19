@@ -1,18 +1,20 @@
-# Measured capacity workload — Attention Atlas release 9369f6aceda5b33c
+# Measured capacity workload — Attention Atlas release 9369f6aceda5b33c (app version unknown)
 
 Public target: https://attention-atlas.pages.dev/
 
 ## What ran
 
-Owner-authorized tests from one local generator against the live Cloudflare Pages site. Each cold session fetches the HTML and all 14 deployment assets. Here cold means an empty learner browser cache; Cloudflare’s shared edge cache is not purged and may be warm. Every response body is decompressed and compared by SHA-256 with the corresponding tested build file. The production release ID is recorded in each raw report.
+Owner-authorized tests from one local generator against the live Cloudflare Pages site. Each cold session fetches the HTML and all 14 deployment assets. Here cold means an empty learner browser cache; Cloudflare’s shared edge cache is not purged and may be warm. Every response body is decompressed and compared by SHA-256 with the corresponding tested build file. The production release ID is recorded in each raw report, with the application version the build gave it; a report made before the version was recorded shows it as unknown.
 
-| Report | Scenario | Completed sessions | Successful / failed requests | Mean requests/s | Peak in flight | Request p95 | Outcome |
-| --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| [cold-10000.json](load-results/cold-10000.json) | cold | 10,000 | 150,000 / 0 | 458.3 | 110 | 38.9 ms | completed |
-| [cold-baseline.json](load-results/cold-baseline.json) | cold | 100 | 1,500 / 0 | 94.4 | 9 | 43.2 ms | completed |
-| [cold-smoke.json](load-results/cold-smoke.json) | cold | 10 | 150 / 0 | 24.6 | 3 | 52.1 ms | completed |
+| Report | Release | App version | Scenario | Completed sessions | Successful / failed requests | Mean requests/s | Peak in flight | Request p95 | Outcome |
+| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| [cold-10000.json](load-results/cold-10000.json) | 9369f6aceda5b33c | unknown | cold | 10,000 | 150,000 / 0 | 458.3 | 110 | 38.9 ms | completed |
+| [cold-baseline.json](load-results/cold-baseline.json) | 9369f6aceda5b33c | unknown | cold | 100 | 1,500 / 0 | 94.4 | 9 | 43.2 ms | completed |
+| [cold-smoke.json](load-results/cold-smoke.json) | 9369f6aceda5b33c | unknown | cold | 10 | 150 / 0 | 24.6 | 3 | 52.1 ms | completed |
 
 ## The 10,000-session run
+
+Release measured: 9369f6aceda5b33c, app version unknown.
 
 Outcome: **completed**. Stop reason: none.
 
