@@ -3,6 +3,7 @@ import {mountLearningTools} from './learning-tools.js';
 import {lessons,quiz,sources} from './lessons.js';
 import {mountCNN,mountAttention,mountTransformer} from './visual-labs.js';
 import {mountRNN,mountPosition} from './sequence-labs.js';
+import {mountScene3D} from './scene3d.js';
 import {loadProgress,commitProgress,subscribeProgressChanges,normalizeProgress,parseProgressImport,mergeProgress,revisionPlan,CHAPTERS} from './progress.js';
 const $=s=>document.querySelector(s);
 let storage;try{storage=window.localStorage;}catch{storage=null;}
@@ -21,6 +22,7 @@ let questionIndex=0;
 for(const lesson of lessons){const holder=document.querySelector(`[data-lesson="${lesson.id}"]`);holder.innerHTML=`<details><summary>The maths, explained · ${lesson.title}</summary><div class="lesson-body">${lesson.body}</div></details>`;}
 mountLearningTools($('#learning-tools'));mountScaling($('#scaling-lab'));mountNormalization($('#normalization-lab'));mountComplexity($('#complexity-lab'));mountCNN($('#cnn-lab'));mountRNN($('#rnn-lab'));mountAttention($('#attention-lab'));mountTransformer($('#transformer-map'));mountPosition($('#position-lab'));
 for(const [id,title] of [['rnn-lab','EXPERIMENT 02 / TRACE THE MEMORY'],['position-lab','EXPERIMENT 05 / A POSITION SIGNATURE']]){const lab=document.getElementById(id),body=document.createElement('div');body.className='lab-body';body.append(...lab.childNodes);lab.append(body);const bar=document.createElement('div');bar.className='lab-topbar';bar.innerHTML=`<span class="eyebrow">${title}</span><span class="pill">Change a parameter</span>`;document.getElementById(id).prepend(bar);}
+mountScene3D({documentRef:document,windowRef:window});
 // Every progress message goes through here. The status line sits in the collapsed privacy panel, so while progress is
 // not being saved each new message opens the panel (it is then shown and announced, beside Export), and the progress
 // rail says so too. Both are far from a learner marking a chapter or answering a question, so persist() also shows a
