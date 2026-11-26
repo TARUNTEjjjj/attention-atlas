@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "project": "attention-atlas",
   "title": "Attention Atlas resources",
-  "fetchedAt": "2026-11-25T12:28:35.161Z",
-  "attemptedAt": "2026-11-25T12:28:22.617Z",
+  "fetchedAt": "2026-11-26T12:08:58.254Z",
+  "attemptedAt": "2026-11-26T12:08:45.600Z",
   "status": "live",
   "errors": [],
   "excludedSeeds": [],
@@ -42,13 +42,13 @@
       "license": "MIT",
       "category": "foundations",
       "sourceQuery": "topic:neural-network topic:from-scratch",
-      "fetchedAt": "2026-11-25T12:28:22.998Z",
+      "fetchedAt": "2026-11-26T12:08:46.061Z",
       "provenance": "github",
       "stale": false,
       "sourceQueries": [
         "topic:neural-network topic:from-scratch"
       ],
-      "score": 59.63,
+      "score": 59.62,
       "reason": "Neural network foundations resource; 936 GitHub stars."
     },
     {
@@ -57,20 +57,20 @@
       "url": "https://github.com/karpathy/micrograd",
       "description": "A tiny scalar-valued autograd engine and a neural net library on top of it with PyTorch-like API",
       "topics": [],
-      "stars": 19114,
-      "forks": 3034,
+      "stars": 19136,
+      "forks": 3038,
       "pushedAt": "2026-08-03T04:04:05.000Z",
       "license": "MIT",
       "category": "foundations",
       "sourceQuery": "repo:karpathy/micrograd",
-      "fetchedAt": "2026-11-25T12:28:25.397Z",
+      "fetchedAt": "2026-11-26T12:08:48.465Z",
       "provenance": "github",
       "stale": false,
       "sourceQueries": [
         "repo:karpathy/micrograd"
       ],
-      "score": 49.02,
-      "reason": "Neural network foundations resource; 19114 GitHub stars."
+      "score": 49.01,
+      "reason": "Neural network foundations resource; 19136 GitHub stars."
     },
     {
       "id": 152166877,
@@ -97,20 +97,20 @@
         "reinforcement-learning",
         "tensorflow"
       ],
-      "stars": 30113,
-      "forks": 5163,
+      "stars": 30117,
+      "forks": 5162,
       "pushedAt": "2024-08-18T08:02:36.000Z",
       "license": null,
       "category": "foundations",
       "sourceQuery": "repo:d2l-ai/d2l-en",
-      "fetchedAt": "2026-11-25T12:28:27.783Z",
+      "fetchedAt": "2026-11-26T12:08:50.877Z",
       "provenance": "github",
       "stale": false,
       "sourceQueries": [
         "repo:d2l-ai/d2l-en"
       ],
       "score": 25.45,
-      "reason": "Neural network foundations resource; 30113 GitHub stars."
+      "reason": "Neural network foundations resource; 30117 GitHub stars."
     },
     {
       "id": 155220641,
@@ -138,20 +138,20 @@
         "transformer",
         "vlm"
       ],
-      "stars": 169302,
-      "forks": 35295,
-      "pushedAt": "2026-11-25T12:27:26.000Z",
+      "stars": 169351,
+      "forks": 35307,
+      "pushedAt": "2026-11-26T12:03:04.000Z",
       "license": "Apache-2.0",
       "category": "attention",
       "sourceQuery": "repo:huggingface/transformers",
-      "fetchedAt": "2026-11-25T12:28:35.161Z",
+      "fetchedAt": "2026-11-26T12:08:58.254Z",
       "provenance": "github",
       "stale": false,
       "sourceQueries": [
         "repo:huggingface/transformers"
       ],
       "score": 76.14,
-      "reason": "Transformers and attention resource; 169302 GitHub stars."
+      "reason": "Transformers and attention resource; 169351 GitHub stars."
     },
     {
       "id": 141286594,
@@ -186,7 +186,7 @@
       "license": "MIT",
       "category": "attention",
       "sourceQuery": "topic:transformer topic:tutorial",
-      "fetchedAt": "2026-11-25T12:28:30.384Z",
+      "fetchedAt": "2026-11-26T12:08:53.422Z",
       "provenance": "github",
       "stale": false,
       "sourceQueries": [
@@ -218,20 +218,20 @@
         "transformer",
         "tutorial"
       ],
-      "stars": 16883,
+      "stars": 16886,
       "forks": 3107,
       "pushedAt": "2026-10-23T14:03:33.000Z",
       "license": null,
       "category": "attention",
       "sourceQuery": "topic:transformer topic:tutorial",
-      "fetchedAt": "2026-11-25T12:28:30.384Z",
+      "fetchedAt": "2026-11-26T12:08:53.422Z",
       "provenance": "github",
       "stale": false,
       "sourceQueries": [
         "topic:transformer topic:tutorial"
       ],
-      "score": 50.31,
-      "reason": "Transformers and attention resource; 16883 GitHub stars."
+      "score": 50.29,
+      "reason": "Transformers and attention resource; 16886 GitHub stars."
     },
     {
       "id": 164852596,
@@ -255,7 +255,7 @@
       "license": "MIT",
       "category": "attention",
       "sourceQuery": "topic:transformer topic:tutorial",
-      "fetchedAt": "2026-11-25T12:28:30.384Z",
+      "fetchedAt": "2026-11-26T12:08:53.422Z",
       "provenance": "github",
       "stale": false,
       "sourceQueries": [
@@ -288,20 +288,20 @@
         "transformer",
         "tutorial"
       ],
-      "stars": 2874,
+      "stars": 2872,
       "forks": 402,
       "pushedAt": "2024-05-27T02:44:35.000Z",
       "license": null,
       "category": "attention",
       "sourceQuery": "topic:transformer topic:tutorial",
-      "fetchedAt": "2026-11-25T12:28:30.384Z",
+      "fetchedAt": "2026-11-26T12:08:53.422Z",
       "provenance": "github",
       "stale": false,
       "sourceQueries": [
         "topic:transformer topic:tutorial"
       ],
       "score": 40.15,
-      "reason": "Transformers and attention resource; 2874 GitHub stars."
+      "reason": "Transformers and attention resource; 2872 GitHub stars."
     },
     {
       "id": 159797814,
@@ -325,7 +325,7 @@
       "license": "MIT",
       "category": "attention",
       "sourceQuery": "topic:transformer topic:tutorial",
-      "fetchedAt": "2026-11-25T12:28:30.384Z",
+      "fetchedAt": "2026-11-26T12:08:53.422Z",
       "provenance": "github",
       "stale": false,
       "sourceQueries": [
@@ -340,20 +340,20 @@
       "url": "https://github.com/karpathy/nanoGPT",
       "description": "The simplest, fastest repository for training/finetuning medium-sized GPTs.",
       "topics": [],
-      "stars": 65069,
-      "forks": 11188,
+      "stars": 65101,
+      "forks": 11196,
       "pushedAt": "2025-11-12T19:52:34.000Z",
       "license": "MIT",
       "category": "attention",
       "sourceQuery": "repo:karpathy/nanoGPT",
-      "fetchedAt": "2026-11-25T12:28:32.776Z",
+      "fetchedAt": "2026-11-26T12:08:55.815Z",
       "provenance": "github",
       "stale": false,
       "sourceQueries": [
         "repo:karpathy/nanoGPT"
       ],
       "score": 28.98,
-      "reason": "Transformers and attention resource; 65069 GitHub stars."
+      "reason": "Transformers and attention resource; 65101 GitHub stars."
     },
     {
       "id": 545823575,
@@ -381,13 +381,13 @@
       "license": "Apache-2.0",
       "category": "attention",
       "sourceQuery": "topic:transformer topic:tutorial",
-      "fetchedAt": "2026-11-25T12:28:30.384Z",
+      "fetchedAt": "2026-11-26T12:08:53.422Z",
       "provenance": "github",
       "stale": false,
       "sourceQueries": [
         "topic:transformer topic:tutorial"
       ],
-      "score": 24,
+      "score": 23.98,
       "reason": "Transformers and attention resource; 855 GitHub stars."
     },
     {
@@ -413,20 +413,20 @@
         "transformer",
         "tutorial"
       ],
-      "stars": 1151,
-      "forks": 126,
+      "stars": 1152,
+      "forks": 127,
       "pushedAt": "2026-09-30T21:38:53.000Z",
       "license": null,
       "category": "attention",
       "sourceQuery": "topic:transformer topic:tutorial",
-      "fetchedAt": "2026-11-25T12:28:30.384Z",
+      "fetchedAt": "2026-11-26T12:08:53.422Z",
       "provenance": "github",
       "stale": false,
       "sourceQueries": [
         "topic:transformer topic:tutorial"
       ],
-      "score": 23.98,
-      "reason": "Transformers and attention resource; 1151 GitHub stars."
+      "score": 23.97,
+      "reason": "Transformers and attention resource; 1152 GitHub stars."
     },
     {
       "id": 237385601,
@@ -455,20 +455,20 @@
         "tutorial",
         "yolo"
       ],
-      "stars": 2516,
+      "stars": 2515,
       "forks": 638,
       "pushedAt": "2024-06-30T16:28:31.000Z",
       "license": "Apache-2.0",
       "category": "attention",
       "sourceQuery": "topic:transformer topic:tutorial",
-      "fetchedAt": "2026-11-25T12:28:30.384Z",
+      "fetchedAt": "2026-11-26T12:08:53.422Z",
       "provenance": "github",
       "stale": false,
       "sourceQueries": [
         "topic:transformer topic:tutorial"
       ],
       "score": 19.94,
-      "reason": "Transformers and attention resource; 2516 GitHub stars."
+      "reason": "Transformers and attention resource; 2515 GitHub stars."
     }
   ]
 }
